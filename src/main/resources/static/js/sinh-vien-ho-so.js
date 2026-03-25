@@ -106,6 +106,8 @@ async function loadProfile() {
         }
 
         const d = json.data;
+        const maEl = document.getElementById('maNguoiDung');
+        if (maEl) maEl.value = d.maNguoiDung || '';
         document.getElementById('ho').value = d.ho || '';
         document.getElementById('ten').value = d.ten || '';
         document.getElementById('email').value = d.email || '';
