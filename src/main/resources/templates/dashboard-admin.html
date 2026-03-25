@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<!--
+    Trang Dashboard dành cho ADMIN (Quản trị viên)
+    Thống kê toàn bộ hệ thống: người dùng, đề thi, môn học...
+    Sử dụng Thymeleaf để render dữ liệu động từ Spring Boot
+-->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Hệ Thống Thi Trắc Nghiệm</title>
+    <!-- CSS dashboard chung -->
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <!-- CSS riêng cho admin -->
+    <link rel="stylesheet" th:href="@{/css/dashboard-admin.css}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button class="sidebar-close" id="sidebarClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-menu">
+            <!-- Admin badge -->
+            <div class="admin-badge-sidebar">
+                <i class="fas fa-user-shield"></i>
+                <span>Quản trị viên</span>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">TỔNG QUAN</span>
+                <a href="#" class="menu-item active" data-page="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">QUẢN LÝ</span>
+                <a href="#" class="menu-item" data-page="nguoi-dung">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Quản Lý Người Dùng</span>
+                </a>
+                <a href="#" class="menu-item" data-page="mon-hoc">
+                    <i class="fas fa-book"></i>
+                    <span>Quản Lý Môn Học</span>
+                </a>
+                <a href="#" class="menu-item" data-page="de-thi">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Quản Lý Đề Thi</span>
+                </a>
+                <a href="#" class="menu-item" data-page="cau-hoi">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Quản Lý Câu Hỏi</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">HỆ THỐNG</span>
+                <a href="#" class="menu-item" data-page="thong-ke">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Thống Kê Chi Tiết</span>
+                </a>
+                <a href="#" class="menu-item" data-page="cai-dat">
+                    <i class="fas fa-cog"></i>
+                    <span>Cài Đặt Hệ Thống</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a href="#" class="menu-item" data-page="ho-so">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Hồ Sơ Cá Nhân</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 id="mainPageTitle">Dashboard Quản Trị</h1>
+            </div>
+            <div class="header-right">
+                <!-- Thông báo -->
+                <button class="header-icon-btn" title="Thông báo">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <!-- User info -->
+                <div class="user-info">
+                    <div class="user-details">
+                        <span class="user-name" id="displayName">Admin</span>
+                        <span class="user-role">Quản trị viên</span>
+                    </div>
+                    <div class="user-avatar admin-avatar">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content" id="pageDashboard">
+            <!-- ===== STATS CARDS (6 cards) ===== -->
+            <div class="stats-grid admin-stats-grid">
+                <!-- Tổng người dùng -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongNguoiDung">--</span>
+                        <span class="stat-label">Tổng Người Dùng</span>
+                    </div>
+                </div>
+                <!-- Tổng sinh viên -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongSinhVien">--</span>
+                        <span class="stat-label">Sinh Viên</span>
+                    </div>
+                </div>
+                <!-- Tổng giáo viên -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936, #dd6b20);">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongGiaoVien">--</span>
+                        <span class="stat-label">Giáo Viên</span>
+                    </div>
+                </div>
+                <!-- Tổng lượt thi -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1, #3182ce);">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongLuotThi">--</span>
+                        <span class="stat-label">Lượt Thi</span>
+                    </div>
+                </div>
+                <!-- Tổng đề thi -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #9f7aea, #805ad5);">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongDeThi">--</span>
+                        <span class="stat-label">Đề Thi</span>
+                    </div>
+                </div>
+                <!-- Tổng môn học -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f56565, #e53e3e);">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongMonHoc">--</span>
+                        <span class="stat-label">Môn Học</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== BIỂU ĐỒ & HOẠT ĐỘNG ===== -->
+            <div class="dashboard-row">
+                <!-- Biểu đồ lượt thi theo tháng -->
+                <div class="dashboard-card chart-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> Lượt Thi Theo Tháng</h3>
+                        <div class="chart-legend-info">
+                            <span class="legend-dot" style="background: #667eea;"></span>
+                            <span>Số lượt thi 12 tháng gần nhất</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Thống kê điểm hệ thống -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> Thống Kê Điểm</h3>
+                    </div>
+                    <div class="card-body score-stats">
+                        <div class="score-stat-item">
+                            <div class="score-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="score-info">
+                                <span class="score-value" id="statDiemTB">--</span>
+                                <span class="score-label">Điểm TB Hệ Thống</span>
+                            </div>
+                        </div>
+                        <div class="score-stat-item">
+                            <div class="score-icon" style="background: linear-gradient(135deg, #ed8936, #dd6b20);">
+                                <i class="fas fa-percentage"></i>
+                            </div>
+                            <div class="score-info">
+                                <span class="score-value" id="statTiLeDo">--</span>
+                                <span class="score-label">Tỷ Lệ Đỗ</span>
+                            </div>
+                        </div>
+                        <div class="score-stat-item">
+                            <div class="score-icon" style="background: linear-gradient(135deg, #f56565, #e53e3e);">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="score-info">
+                                <span class="score-value" id="statCauHoi">--</span>
+                                <span class="score-label">Câu Hỏi Trắc Nghiệm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TOP GIÁO VIÊN & TOP SINH VIÊN ===== -->
+            <div class="dashboard-row">
+                <!-- Top giáo viên -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chalkboard-teacher" style="color: #ed8936;"></i> Top Giáo Viên Tích Cực</h3>
+                        <a href="#" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Xem tất cả</a>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Họ và Tên</th>
+                                    <th>Email</th>
+                                    <th>Đề Thi</th>
+                                    <th>Lượt Thi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topGiaoVienTable">
+                                <tr class="loading-row">
+                                    <td colspan="5"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top sinh viên -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-graduate" style="color: #48bb78;"></i> Top Sinh Viên Xuất Sắc</h3>
+                        <a href="#" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Xem tất cả</a>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Xếp Hạng</th>
+                                    <th>Họ và Tên</th>
+                                    <th>Email</th>
+                                    <th>Điểm TB</th>
+                                    <th>Lần Thi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topSinhVienTable">
+                                <tr class="loading-row">
+                                    <td colspan="5"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== NGƯỜI DÙNG MỚI & ĐỀ THI MỚI ===== -->
+            <div class="dashboard-row">
+                <!-- Người dùng mới -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-plus" style="color: #667eea;"></i> Người Dùng Mới Đăng Ký</h3>
+                        <a href="#" class="btn btn-sm btn-primary"><i class="fas fa-users-cog"></i> Quản lý</a>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Họ và Tên</th>
+                                    <th>Email</th>
+                                    <th>SĐT</th>
+                                    <th>Vai Trò</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nguoiDungMoiTable">
+                                <tr class="loading-row">
+                                    <td colspan="4"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Đề thi mới -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-file-plus" style="color: #9f7aea;"></i> Đề Thi Mới Tạo</h3>
+                        <a href="#" class="btn btn-sm btn-primary"><i class="fas fa-file-alt"></i> Quản lý</a>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tên Đề Thi</th>
+                                    <th>Môn Học</th>
+                                    <th>GV Tạo</th>
+                                    <th>Lượt Thi</th>
+                                    <th>Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deThiMoiTable">
+                                <tr class="loading-row">
+                                    <td colspan="5"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trang Quản lý người dùng -->
+        <div class="dashboard-content admin-user-page" id="pageNguoiDung" style="display: none;">
+            <div class="admin-info-banner">
+                <i class="fas fa-info-circle"></i>
+                Mật khẩu được lưu dạng băm BCrypt — <strong>không thể xem mật khẩu gốc</strong>. Dùng chức năng <em>Đặt lại mật khẩu</em> để cấp mật khẩu mới cho người dùng.
+            </div>
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-users-cog"></i> Danh sách tài khoản</h3>
+                    <button type="button" class="btn btn-sm btn-primary" id="btnReloadUsers">
+                        <i class="fas fa-sync-alt"></i> Tải lại
+                    </button>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="adminUsersMsg" class="admin-inline-msg" hidden></div>
+                    <div class="table-wrap-admin">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã</th>
+                                    <th>Họ tên</th>
+                                    <th>Email</th>
+                                    <th>SĐT</th>
+                                    <th>Vai trò</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminUsersTableBody">
+                                <tr class="loading-row">
+                                    <td colspan="6"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal sửa người dùng -->
+        <div class="admin-modal-overlay" id="modalEditUser" style="display: none;">
+            <div class="admin-modal">
+                <div class="admin-modal-header">
+                    <h3 id="modalEditTitle">Sửa thông tin</h3>
+                    <button type="button" class="admin-modal-close" id="modalEditClose" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-field">
+                        <label for="editHo">Họ</label>
+                        <input type="text" id="editHo" autocomplete="family-name">
+                    </div>
+                    <div class="form-field">
+                        <label for="editTen">Tên</label>
+                        <input type="text" id="editTen" autocomplete="given-name">
+                    </div>
+                    <div class="form-field">
+                        <label for="editEmail">Email</label>
+                        <input type="email" id="editEmail" autocomplete="email">
+                    </div>
+                    <div class="form-field">
+                        <label for="editSdt">Số điện thoại</label>
+                        <input type="tel" id="editSdt" autocomplete="tel">
+                    </div>
+                    <div class="form-field">
+                        <label for="editVaiTro">Vai trò</label>
+                        <select id="editVaiTro">
+                            <option value="SINH_VIEN">Sinh viên</option>
+                            <option value="GIAO_VIEN">Giáo viên</option>
+                            <option value="ADMIN">Quản trị viên</option>
+                        </select>
+                    </div>
+                    <p class="form-hint" id="editMatKhauHint">Mật khẩu: đã mã hóa — không hiển thị được.</p>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn btn-sm" id="btnCancelEdit">Hủy</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="btnSaveEdit">Lưu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal đặt lại mật khẩu -->
+        <div class="admin-modal-overlay" id="modalResetPw" style="display: none;">
+            <div class="admin-modal">
+                <div class="admin-modal-header">
+                    <h3>Đặt lại mật khẩu</h3>
+                    <button type="button" class="admin-modal-close" id="modalPwClose" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body">
+                    <input type="hidden" id="pwUserId">
+                    <div class="form-field">
+                        <label for="pwNew">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+                        <input type="password" id="pwNew" autocomplete="new-password" minlength="6">
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn btn-sm" id="btnCancelPw">Hủy</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="btnSavePw">Lưu mật khẩu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript xử lý dashboard admin -->
+    <script th:src="@{/js/dashboard-admin.js}"></script>
+</body>
+</html>

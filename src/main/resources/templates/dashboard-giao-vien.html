@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<!--
+    Trang Dashboard dành cho GIÁO VIÊN
+    Hiển thị thông tin quản lý: số đề thi, số câu hỏi, thống kê sinh viên...
+    Sử dụng Thymeleaf để render dữ liệu động từ Spring Boot
+-->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Thiết lập bảng mã UTF-8 để hiển thị tiếng Việt -->
+    <meta charset="UTF-8">
+    <!-- Responsive trên mọi thiết bị -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Giáo Viên - Hệ Thống Thi Trắc Nghiệm</title>
+
+    <!-- Liên kết đến file CSS cho giao diện dashboard -->
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+
+    <!-- Liên kết Font Awesome cho các biểu tượng -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Liên kết Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js cho biểu đồ thống kê -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- ===== SIDEBAR (Thanh bên trái) ===== -->
+    <aside class="sidebar" id="sidebar">
+        <!-- Logo -->
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button class="sidebar-close" id="sidebarClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Menu điều hướng -->
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">QUẢN LÝ</span>
+                <a th:href="@{/dashboard/giao-vien}" class="menu-item active">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Quản Lý Đề Thi</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Quản Lý Câu Hỏi</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-users"></i>
+                    <span>Quản Lý Sinh Viên</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Thống Kê</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/giao-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i>
+                    <span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT (Nội dung chính) ===== -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Trang Chủ</h1>
+            </div>
+
+            <div class="header-right">
+                <a href="#" class="btn btn-primary btn-sm" id="btnTaoDeThiMoi">
+                    <i class="fas fa-plus"></i> Tạo Đề Thi Mới
+                </a>
+                <div class="user-info" id="userInfo">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge" id="displayRole">Giáo viên</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- ===== THỐNG KÊ TỔNG QUAN ===== -->
+            <div class="stats-grid" id="statsGrid">
+                <!-- Thẻ thống kê 1: Tổng số đề thi -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongSoDeThi">0</span>
+                        <span class="stat-label">Tổng Số Đề Thi</span>
+                    </div>
+                </div>
+
+                <!-- Thẻ thống kê 2: Tổng số câu hỏi -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongSoCauHoi">0</span>
+                        <span class="stat-label">Tổng Số Câu Hỏi</span>
+                    </div>
+                </div>
+
+                <!-- Thẻ thống kê 3: Tổng số lượt thi -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936, #dd6b20);">
+                        <i class="fas fa-pencil-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongSoLuotThi">0</span>
+                        <span class="stat-label">Tổng Số Lượt Thi</span>
+                    </div>
+                </div>
+
+                <!-- Thẻ thống kê 4: Tổng số sinh viên -->
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1, #3182ce);">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTongSoSinhVien">0</span>
+                        <span class="stat-label">Tổng Số Sinh Viên</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== HÀNG THỨ 2: BIỂU ĐỒ & ĐỀ THI GẦN NHẤT ===== -->
+            <div class="dashboard-row">
+                <!-- Biểu đồ thống kê theo môn -->
+                <div class="dashboard-card chart-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> Thống Kê Theo Môn Học</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="thongKeMonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Đề thi gần nhất -->
+                <div class="dashboard-card recent-exam-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-star"></i> Đề Thi Mới Nhất</h3>
+                    </div>
+                    <div class="card-body" id="recentExamBody">
+                        <div class="loading-placeholder">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Đang tải dữ liệu...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== BẢNG ĐỀ THI GẦN ĐÂY ===== -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Danh Sách Đề Thi Gần Đây</h3>
+                    <a href="#" class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> Xem Tất Cả
+                    </a>
+                </div>
+                <div class="card-body">
+                    <table class="data-table" id="deThiTable">
+                        <thead>
+                            <tr>
+                                <th>Mã Đề</th>
+                                <th>Tên Đề Thi</th>
+                                <th>Môn Học</th>
+                                <th>Thời Gian</th>
+                                <th>Lượt Thi</th>
+                                <th>Trạng Thái</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deThiBody">
+                            <tr class="loading-row">
+                                <td colspan="7">
+                                    <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== THỐNG KÊ THEO MÔN HỌC ===== -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-bar"></i> Thống Kê Chi Tiết Theo Môn Học</h3>
+                </div>
+                <div class="card-body">
+                    <table class="data-table" id="monHocTable">
+                        <thead>
+                            <tr>
+                                <th>Môn Học</th>
+                                <th>Số Đề Thi</th>
+                                <th>Số Câu Hỏi</th>
+                                <th>Số Lượt Thi</th>
+                                <th>Điểm Trung Bình</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monHocBody">
+                            <tr class="loading-row">
+                                <td colspan="6">
+                                    <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript xử lý dashboard -->
+    <script th:src="@{/js/dashboard-giao-vien.js}"></script>
+</body>
+</html>

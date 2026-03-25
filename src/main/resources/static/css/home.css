@@ -1,0 +1,1049 @@
+/*
+ * home.css - File CSS cho trang chủ website thi trắc nghiệm
+ * Chứa các kiểu dáng cho navbar, hero section, features, subjects, contact, footer...
+ * Sử dụng CSS Grid và Flexbox để bố cục responsive
+ */
+
+/* ============================================
+   1. BIẾN CSS (CSS Variables)
+   ============================================ */
+/* Định nghĩa các biến màu sắc và kích thước để dễ dàng thay đổi theme */
+:root {
+    /* Màu chính - Xanh dương tím (Purple Blue) - tượng trưng cho tri thức */
+    --primary-color: #667eea;
+    --primary-dark: #5a67d8;
+    --primary-light: #7f9cf5;
+    
+    /* Màu phụ - Xanh lá nhạt, tạo cảm giác tươi mát */
+    --secondary-color: #48bb78;
+    --secondary-dark: #38a169;
+    
+    /* Màu nền tổng thể - Trắng nhẹ nhàng */
+    --bg-color: #ffffff;
+    --bg-light: #f7fafc;
+    --bg-dark: #edf2f7;
+    
+    /* Màu chữ chính - Xám đậm cho dễ đọc */
+    --text-color: #2d3748;
+    --text-light: #718096;
+    --text-white: #ffffff;
+    
+    /* Màu viền - Xám nhạt */
+    --border-color: #e2e8f0;
+    
+    /* Màu báo cáo/trạng thái */
+    --success-color: #48bb78;
+    --warning-color: #ed8936;
+    --error-color: #f56565;
+    
+    /* Shadow - Đổ bóng mềm mại cho các thẻ */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+    
+    /* Border radius - Bo góc tròn cho hiệu ứng hiện đại */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-full: 50%;
+    
+    /* Transitions - Hiệu ứng chuyển động mượt mà */
+    --transition-fast: all 0.2s ease;
+    --transition-normal: all 0.3s ease;
+    --transition-slow: all 0.4s ease;
+}
+
+/* ============================================
+   2. RESET VÀ BASE STYLES
+   ============================================ */
+/* Reset CSS cơ bản để đảm bảo consistent giữa các trình duyệt */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Thiết lập font chữ và màu nền cho toàn bộ trang */
+html {
+    scroll-behavior: smooth; /* Cuộn mượt khi click vào liên kết neo */
+}
+
+body {
+    font-family: 'Poppins', sans-serif; /* Font chữ chính từ Google Fonts */
+    font-size: 16px;
+    line-height: 1.6; /* Chiều cao dòng giúp text dễ đọc */
+    color: var(--text-color);
+    background-color: var(--bg-color);
+}
+
+/* Container chính để giới hạn chiều rộng nội dung */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ============================================
+   3. NAVIGATION BAR (Thanh điều hướng)
+   ============================================ */
+/* Thanh điều hướng cố định ở đầu trang */
+.navbar {
+    position: fixed; /* Luôn hiển thị ở trên cùng khi cuộn */
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--bg-color);
+    box-shadow: var(--shadow-md); /* Đổ bóng nhẹ phía dưới */
+    z-index: 1000; /* Đảm bảo navbar luôn ở trên các phần tử khác */
+    padding: 15px 0;
+}
+
+/* Container chứa nội dung của navbar */
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between; /* Logo bên trái, menu bên phải */
+    align-items: center;
+}
+
+/* Logo và tên website */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Khoảng cách giữa icon và text */
+    text-decoration: none;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    font-weight: 700; /* Font đậm cho logo */
+}
+
+.logo i {
+    font-size: 2rem; /* Icon lớn hơn text một chút */
+}
+
+/* Menu điều hướng chính */
+.nav-menu {
+    display: flex;
+    list-style: none; /* Bỏ dấu chấm đầu dòng */
+    gap: 35px; /* Khoảng cách giữa các mục menu */
+}
+
+.nav-menu a {
+    text-decoration: none; /* Bỏ gạch chân liên kết */
+    color: var(--text-color);
+    font-weight: 500;
+    transition: var(--transition-fast); /* Hiệu ứng đổi màu mượt */
+    position: relative;
+}
+
+.nav-menu a:hover,
+.nav-menu a.active {
+    color: var(--primary-color); /* Đổi màu khi hover hoặc active */
+}
+
+/* Thêm gạch chân cho menu item active */
+.nav-menu a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--primary-color);
+    border-radius: 2px;
+}
+
+/* Các nút đăng nhập/đăng ký */
+.nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* User Menu (Dropdown) */
+.user-menu {
+    position: relative;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 15px;
+    background-color: var(--bg-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.user-info:hover {
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+}
+
+.user-info i:first-child {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.user-info span {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.user-info:hover span {
+    color: var(--text-white);
+}
+
+.user-info .fa-chevron-down {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    transition: var(--transition-fast);
+}
+
+.user-menu:hover .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* User Dropdown Menu */
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    min-width: 200px;
+    background-color: var(--bg-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: var(--transition-normal);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.user-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-header {
+    padding: 15px;
+    background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-header span {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-light);
+    color: var(--primary-color);
+}
+
+.dropdown-item i {
+    width: 20px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.dropdown-item:hover i {
+    color: var(--primary-color);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 5px 0;
+}
+
+.logout-btn {
+    color: var(--error-color) !important;
+}
+
+.logout-btn i {
+    color: var(--error-color) !important;
+}
+
+.logout-btn:hover {
+    background-color: rgba(245, 101, 101, 0.1);
+}
+
+/* Nút toggle menu trên mobile - ẩn mặc định */
+.menu-toggle {
+    display: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+/* ============================================
+   4. BUTTONS (Các nút bấm)
+   ============================================ */
+/* Style chung cho tất cả các nút */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Khoảng cách giữa icon và text */
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    border: 2px solid transparent;
+}
+
+/* Nút chính - Màu primary với nền */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: var(--text-white);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+    transform: translateY(-2px); /* Di chuyển nhẹ lên trên khi hover */
+    box-shadow: var(--shadow-lg);
+}
+
+/* Nút phụ - Chỉ có viền, nền trong suốt */
+.btn-secondary {
+    background-color: transparent;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--primary-color);
+    color: var(--text-white);
+}
+
+/* Nút outline - Viền nhẹ hơn */
+.btn-outline {
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    background: transparent;
+}
+
+.btn-outline:hover {
+    background-color: var(--primary-color);
+    color: var(--text-white);
+}
+
+/* Nút lớn - Dùng cho hero section */
+.btn-large {
+    padding: 15px 32px;
+    font-size: 1.1rem;
+}
+
+/* Nút full width - Chiều rộng 100% */
+.btn-full {
+    width: 100%;
+}
+
+/* Nút cho phần môn học */
+.btn-subject {
+    background-color: var(--primary-color);
+    color: var(--text-white);
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.btn-subject:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   5. HERO SECTION (Phần banner chính)
+   ============================================ */
+/* Phần hero chiếm toàn bộ chiều cao viewport */
+.hero {
+    min-height: 100vh; /* Chiều cao tối thiểu = chiều cao màn hình */
+    display: flex;
+    align-items: center; /* Căn giữa theo chiều dọc */
+    padding: 120px 20px 80px; /* Padding top để tránh navbar */
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); /* Gradient nền nhẹ */
+    gap: 60px;
+}
+
+/* Container chứa nội dung hero */
+.hero-content {
+    flex: 1; /* Chiếm 1 phần không gian */
+    max-width: 600px;
+}
+
+/* Tiêu đề chính của hero */
+.hero h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+/* Từ được highlight trong tiêu đề */
+.hero h1 .highlight {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text; /* Clip nền gradient vào text */
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Mô tả phụ dưới tiêu đề */
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-light);
+    margin-bottom: 30px;
+    line-height: 1.8;
+}
+
+/* Container chứa các nút trong hero */
+.hero-buttons {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 50px;
+    flex-wrap: wrap; /* Cho phép xuống dòng trên màn hình nhỏ */
+}
+
+/* Phần thống kê nhanh */
+.hero-stats {
+    display: flex;
+    gap: 40px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    text-transform: uppercase; /* Viết hoa */
+    letter-spacing: 1px; /* Khoảng cách giữa các chữ cái */
+}
+
+/* Hình ảnh minh họa hero */
+.hero-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hero-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    object-fit: cover;
+}
+
+/* ============================================
+   6. SECTIONS CHUNG
+   ============================================ */
+/* Style chung cho tất cả các section */
+.section {
+    padding: 80px 0;
+}
+
+/* Section header - Tiêu đề và mô tả phần */
+.section-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.section-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 15px;
+    position: relative;
+}
+
+/* Gạch chân trang trí dưới tiêu đề section */
+.section-header h2::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    margin: 15px auto 0;
+    border-radius: 2px;
+}
+
+.section-header p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+
+/* ============================================
+   7. FEATURES SECTION (Phần tính năng)
+   ============================================ */
+/* Nền cho section features */
+.features {
+    background-color: var(--bg-light);
+}
+
+/* Grid chứa các feature cards - Sử dụng CSS Grid */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 cột bằng nhau */
+    gap: 30px;
+}
+
+/* Card hiển thị từng tính năng */
+.feature-card {
+    background-color: var(--bg-color);
+    padding: 35px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-normal);
+    text-align: center;
+}
+
+/* Hiệu ứng khi hover vào feature card */
+.feature-card:hover {
+    transform: translateY(-10px); /* Di chuyển lên 10px */
+    box-shadow: var(--shadow-xl);
+}
+
+/* Icon trong feature card */
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.feature-icon i {
+    font-size: 2rem;
+    color: var(--text-white);
+}
+
+.feature-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.feature-card p {
+    color: var(--text-light);
+    line-height: 1.7;
+}
+
+/* ============================================
+   8. SUBJECTS SECTION (Phần môn học)
+   ============================================ */
+/* Grid chứa các subject cards */
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 cột bằng nhau */
+    gap: 25px;
+}
+
+/* Card hiển thị từng môn học */
+.subject-card {
+    background-color: var(--bg-color);
+    padding: 30px 25px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-normal);
+    text-align: center;
+    border: 2px solid transparent;
+}
+
+/* Viền màu khi hover */
+.subject-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-5px);
+}
+
+/* Icon môn học - bo tròn với màu nền tương ứng */
+.subject-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.subject-icon i {
+    font-size: 1.8rem;
+    color: var(--text-white);
+}
+
+/* Màu nền cho từng môn học */
+.subject-icon.math {
+    background: linear-gradient(135deg, #ed8936, #f6ad55);
+}
+
+.subject-icon.physics {
+    background: linear-gradient(135deg, #4299e1, #63b3ed);
+}
+
+.subject-icon.chemistry {
+    background: linear-gradient(135deg, #48bb78, #68d391);
+}
+
+.subject-icon.english {
+    background: linear-gradient(135deg, #9f7aea, #b794f4);
+}
+
+.subject-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.subject-card p {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    min-height: 45px; /* Đảm bảo chiều cao đồng đều */
+}
+
+/* ============================================
+   9. HOW IT WORKS SECTION (Phần hướng dẫn)
+   ============================================ */
+/* Nền gradient cho section hướng dẫn */
+.how-it-works {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--text-white);
+}
+
+.how-it-works .section-header h2 {
+    color: var(--text-white);
+}
+
+.how-it-works .section-header p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.how-it-works .section-header h2::after {
+    background: var(--text-white);
+}
+
+/* Container chứa các bước */
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+/* Mỗi bước trong quy trình */
+.step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+}
+
+/* Số thứ tự bước - Hiển thị trong vòng tròn lớn */
+.step-number {
+    width: 80px;
+    height: 80px;
+    background-color: var(--text-white);
+    color: var(--primary-color);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 auto 20px;
+    box-shadow: var(--shadow-lg);
+}
+
+.step h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.step p {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+/* ============================================
+   10. CONTACT SECTION (Phần liên hệ)
+   ============================================ */
+/* Nền cho section liên hệ */
+.contact {
+    background-color: var(--bg-light);
+}
+
+/* Container chứa thông tin và form liên hệ */
+.contact-container {
+    display: flex;
+    gap: 50px;
+}
+
+/* Phần thông tin liên hệ */
+.contact-info {
+    flex: 1;
+}
+
+/* Mỗi mục liên hệ (địa chỉ, điện thoại, email...) */
+.contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.contact-item i {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: var(--text-white);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0; /* Không co lại khi không đủ không gian */
+}
+
+.contact-item h4 {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    color: var(--text-color);
+}
+
+.contact-item p {
+    color: var(--text-light);
+}
+
+/* Form liên hệ */
+.contact-form {
+    flex: 1;
+    background-color: var(--bg-color);
+    padding: 40px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+/* Nhóm form input */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+/* Input và textarea */
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: var(--transition-fast);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical; /* Chỉ cho phép resize theo chiều dọc */
+    min-height: 120px;
+}
+
+/* ============================================
+   11. FOOTER (Chân trang)
+   ============================================ */
+/* Footer với nền tối */
+.footer {
+    background-color: #1a202c;
+    color: var(--text-white);
+    padding: 60px 0 0;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1.5fr; /* 4 cột với độ rộng khác nhau */
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+/* Tiêu đề cột trong footer */
+.footer-column h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: var(--text-white);
+}
+
+.footer-column p {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.7;
+    margin-bottom: 15px;
+}
+
+/* Liên kết mạng xã hội */
+.social-links {
+    display: flex;
+    gap: 15px;
+}
+
+.social-links a {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-white);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.social-links a:hover {
+    background-color: var(--primary-color);
+    transform: translateY(-3px);
+}
+
+/* Danh sách liên kết trong footer */
+.footer-links {
+    list-style: none;
+}
+
+.footer-links li {
+    margin-bottom: 12px;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.footer-links a:hover {
+    color: var(--primary-color);
+    padding-left: 5px; /* Di chuyển nhẹ sang phải khi hover */
+}
+
+/* Thông tin liên hệ trong footer */
+.footer-contact {
+    list-style: none;
+}
+
+.footer-contact li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-contact i {
+    color: var(--primary-color);
+}
+
+/* Phần bản quyền ở dưới cùng footer */
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   12. RESPONSIVE DESIGN (Thiết kế responsive)
+   ============================================ */
+/* Màn hình tablet (max-width: 992px) */
+@media (max-width: 992px) {
+    /* Hero section - xếp dọc */
+    .hero {
+        flex-direction: column;
+        text-align: center;
+        padding-top: 100px;
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+    
+    .hero-buttons {
+        justify-content: center;
+    }
+    
+    .hero-stats {
+        justify-content: center;
+    }
+    
+    /* Grid features - 2 cột */
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Grid subjects - 2 cột */
+    .subjects-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Steps container - xếp dọc */
+    .steps-container {
+        flex-direction: column;
+    }
+    
+    /* Contact container - xếp dọc */
+    .contact-container {
+        flex-direction: column;
+    }
+    
+    /* Footer content - 2 cột */
+    .footer-content {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Màn hình điện thoại (max-width: 768px) */
+@media (max-width: 768px) {
+    /* Navbar - Hiển thị menu toggle */
+    .nav-menu {
+        display: none; /* Ẩn menu trên mobile */
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: var(--bg-color);
+        flex-direction: column;
+        padding: 20px;
+        box-shadow: var(--shadow-lg);
+        gap: 15px;
+    }
+    
+    .nav-menu.active {
+        display: flex; /* Hiện menu khi click toggle */
+    }
+    
+    .nav-auth {
+        display: none; /* Ẩn nút đăng nhập/đăng ký trên mobile */
+    }
+    
+    .menu-toggle {
+        display: block; /* Hiện nút hamburger */
+    }
+    
+    /* Hero section */
+    .hero h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+    }
+    
+    .btn-large {
+        width: 100%;
+    }
+    
+    /* Section headers */
+    .section-header h2 {
+        font-size: 2rem;
+    }
+    
+    /* Features grid - 1 cột */
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Subjects grid - 1 cột */
+    .subjects-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Footer - 1 cột */
+    .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .social-links {
+        justify-content: center;
+    }
+    
+    .footer-contact li {
+        justify-content: center;
+    }
+}
+
+/* Màn hình nhỏ (max-width: 480px) */
+@media (max-width: 480px) {
+    .hero {
+        padding: 80px 15px 50px;
+    }
+    
+    .hero h1 {
+        font-size: 1.8rem;
+    }
+    
+    .hero-stats {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .section {
+        padding: 60px 0;
+    }
+    
+    .feature-card,
+    .subject-card {
+        padding: 25px 20px;
+    }
+    
+    .contact-form {
+        padding: 25px;
+    }
+}

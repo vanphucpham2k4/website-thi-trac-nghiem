@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<!--
+    Trang ĐĂNG KÝ cho website thi trắc nghiệm
+    Sử dụng Thymeleaf để render dữ liệu động từ Spring Boot
+    Form đăng ký với: email, họ, tên, sdt, mật khẩu, vai trò, CAPTCHA
+-->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Thiết lập bảng mã UTF-8 để hiển thị tiếng Việt -->
+    <meta charset="UTF-8">
+    <!-- Responsive trên mọi thiết bị -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký - Hệ Thống Thi Trắc Nghiệm</title>
+
+    <!-- Liên kết đến file CSS cho giao diện -->
+    <link rel="stylesheet" th:href="@{/css/login.css}">
+
+    <!-- Liên kết Font Awesome cho các biểu tượng -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Liên kết Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Container chính cho trang đăng ký -->
+    <div class="auth-container">
+        <!-- Phần bên trái - Hình ảnh và thông tin giới thiệu (chỉ hiển thị trên màn hình lớn) -->
+        <div class="auth-image register-image">
+            <div class="auth-image-content">
+                <!-- Logo -->
+                <div class="auth-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>ThiTracNghiem</span>
+                </div>
+
+                <!-- Tiêu đề giới thiệu -->
+                <h1>Tạo Tài Khoản Mới</h1>
+                <p>Tham gia ngay hệ thống thi trắc nghiệm trực tuyến để bắt đầu hành trình học tập của bạn.</p>
+
+                <!-- Các tính năng nổi bật -->
+                <div class="auth-features">
+                    <div class="auth-feature">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Miễn phí đăng ký</span>
+                    </div>
+                    <div class="auth-feature">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Nhiều môn học đa dạng</span>
+                    </div>
+                    <div class="auth-feature">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Đề thi chất lượng cao</span>
+                    </div>
+                    <div class="auth-feature">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Kết quả ngay lập tức</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phần bên phải - Form đăng ký -->
+        <div class="auth-form-container">
+            <div class="auth-form-wrapper">
+                <!-- Tiêu đề form -->
+                <div class="form-header">
+                    <h2>Đăng Ký Tài Khoản</h2>
+                    <p>Điền thông tin bên dưới để tạo tài khoản mới</p>
+                </div>
+
+                <!-- Form đăng ký -->
+                <form id="registerForm" class="auth-form">
+                    <!-- Vai trò (Sinh Viên / Giáo Viên) -->
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-user-tag"></i> Đăng Ký Với Vai Trò
+                        </label>
+                        <div class="role-selector">
+                            <label class="role-option">
+                                <input type="radio" name="vaiTro" value="SINH_VIEN" checked>
+                                <div class="role-card">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span>Sinh Viên</span>
+                                </div>
+                            </label>
+                            <label class="role-option">
+                                <input type="radio" name="vaiTro" value="GIAO_VIEN">
+                                <div class="role-card">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                    <span>Giáo Viên</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i> Email
+                        </label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="Nhập địa chỉ email của bạn"
+                            required
+                            autocomplete="email"
+                        >
+                        <div class="input-status">
+                            <i class="fas fa-check-circle valid-icon" style="display: none;"></i>
+                            <i class="fas fa-times-circle invalid-icon" style="display: none;"></i>
+                        </div>
+                        <small class="field-message"></small>
+                    </div>
+
+                    <!-- Họ và Tên -->
+                    <div class="form-row">
+                        <!-- Họ -->
+                        <div class="form-group half">
+                            <label for="ho">
+                                <i class="fas fa-user"></i> Họ
+                            </label>
+                            <input
+                                type="text"
+                                id="ho"
+                                name="ho"
+                                placeholder="Nhập họ của bạn"
+                                required
+                                autocomplete="family-name"
+                            >
+                            <small class="field-message"></small>
+                        </div>
+
+                        <!-- Tên -->
+                        <div class="form-group half">
+                            <label for="ten">
+                                <i class="fas fa-user"></i> Tên
+                            </label>
+                            <input
+                                type="text"
+                                id="ten"
+                                name="ten"
+                                placeholder="Nhập tên của bạn"
+                                required
+                                autocomplete="given-name"
+                            >
+                            <small class="field-message"></small>
+                        </div>
+                    </div>
+
+                    <!-- Số điện thoại -->
+                    <div class="form-group">
+                        <label for="soDienThoai">
+                            <i class="fas fa-phone"></i> Số Điện Thoại
+                        </label>
+                        <input
+                            type="tel"
+                            id="soDienThoai"
+                            name="soDienThoai"
+                            placeholder="Nhập số điện thoại của bạn"
+                            required
+                            autocomplete="tel"
+                        >
+                        <div class="input-status">
+                            <i class="fas fa-check-circle valid-icon" style="display: none;"></i>
+                            <i class="fas fa-times-circle invalid-icon" style="display: none;"></i>
+                        </div>
+                        <small class="field-message"></small>
+                    </div>
+
+                    <!-- Mật khẩu -->
+                    <div class="form-group">
+                        <label for="matKhau">
+                            <i class="fas fa-lock"></i> Mật Khẩu
+                        </label>
+                        <div class="password-wrapper">
+                            <input
+                                type="password"
+                                id="matKhau"
+                                name="matKhau"
+                                placeholder="Nhập mật khẩu (không cần điều kiện)"
+                                required
+                                autocomplete="new-password"
+                            >
+                            <!-- Nút hiện/ẩn mật khẩu -->
+                            <button type="button" class="toggle-password" aria-label="Hiện/Ẩn mật khẩu">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="field-message"></small>
+                    </div>
+
+                    <!-- CAPTCHA -->
+                    <div class="form-group captcha-group">
+                        <label>
+                            <i class="fas fa-calculator"></i> Xác Minh CAPTCHA
+                        </label>
+                        <div class="captcha-container">
+                            <!-- Câu hỏi CAPTCHA sẽ được load bằng JavaScript -->
+                            <div class="captcha-question" id="captchaQuestion">
+                                <span class="loading-text">Đang tải CAPTCHA...</span>
+                            </div>
+                            <input
+                                type="number"
+                                id="captchaAnswer"
+                                name="captchaAnswer"
+                                placeholder="Nhập kết quả"
+                                required
+                                min="0"
+                            >
+                            <!-- Nút làm mới CAPTCHA -->
+                            <button type="button" class="btn-refresh-captcha" id="btnRefreshCaptcha" title="Làm mới CAPTCHA">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <!-- ID CAPTCHA ẩn để gửi lên server -->
+                        <input type="hidden" id="captchaId" name="captchaId">
+                        <small class="field-message captcha-message"></small>
+                    </div>
+
+                    <!-- Điều khoản sử dụng -->
+                    <div class="form-group terms-group">
+                        <label class="terms-label">
+                            <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+                            <span class="checkmark"></span>
+                            Tôi đồng ý với <a href="#" target="_blank">Điều khoản sử dụng</a> và <a href="#" target="_blank">Chính sách bảo mật</a>
+                        </label>
+                    </div>
+
+                    <!-- Nút đăng ký -->
+                    <button type="submit" class="btn-submit" id="btnRegister">
+                        <span class="btn-text">
+                            <i class="fas fa-user-plus"></i> Đăng Ký
+                        </span>
+                        <span class="btn-loader">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                    </button>
+                </form>
+
+                <!-- Thông báo lỗi/thành công -->
+                <div id="messageBox" class="message-box" style="display: none;">
+                    <div class="message-content">
+                        <i class="message-icon"></i>
+                        <span class="message-text"></span>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="divider">
+                    <span>Hoặc</span>
+                </div>
+
+                <!-- Liên kết đăng nhập -->
+                <div class="auth-footer">
+                    <p>Đã có tài khoản?
+                        <a th:href="@{/login}">Đăng nhập ngay</a>
+                    </p>
+                </div>
+
+                <!-- Liên kết về trang chủ -->
+                <div class="back-home">
+                    <a th:href="@{/}">
+                        <i class="fas fa-home"></i> Quay về trang chủ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript xử lý form đăng ký -->
+    <script th:src="@{/js/register.js}"></script>
+</body>
+</html>
