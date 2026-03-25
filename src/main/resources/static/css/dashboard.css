@@ -889,6 +889,17 @@ body {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
+.form-field input[readonly] {
+    background-color: #f1f5f9;
+    cursor: default;
+    color: var(--text-color);
+}
+
+.form-field input[readonly]:focus {
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
 .form-hint {
     font-size: 0.8rem;
     color: var(--text-muted);
