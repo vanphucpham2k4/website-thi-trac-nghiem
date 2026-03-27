@@ -39,6 +39,8 @@ public interface DeThiRepository extends JpaRepository<DeThi, String> {
      */
     List<DeThi> findByMonHoc(MonHoc monHoc);
 
+    Optional<DeThi> findByIdAndNguoiDung(String id, NguoiDung nguoiDung);
+
     /**
      * Đếm tổng số đề thi trong hệ thống
      * @return Số lượng đề thi

@@ -54,4 +54,6 @@ public interface PhienThiRepository extends JpaRepository<PhienThi, String> {
      * @return Danh sách phiên thi đang thi
      */
     List<PhienThi> findByNguoiDungAndTrangThai(NguoiDung nguoiDung, String trangThai);
+
+    List<PhienThi> findByDeThiId(String deThiId);
 }

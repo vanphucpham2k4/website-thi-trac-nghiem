@@ -65,6 +65,11 @@ public class DashboardController {
         return "dashboard-giao-vien";
     }
 
+    @GetMapping("/giao-vien/theo-doi-thi")
+    public String trangTheoDoiThiGiaoVien() {
+        return "theo-doi-thi-giao-vien";
+    }
+
     /**
      * Trang quản lý hồ sơ cá nhân giáo viên
      * URL: GET /dashboard/giao-vien/ho-so
