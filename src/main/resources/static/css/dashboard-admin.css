@@ -7,6 +7,8 @@
    1. ADMIN OVERRIDES
    ============================================ */
 /* Sidebar màu tối hơn cho admin */
+
+
 .sidebar {
     background-color: #1a202c;
 }
@@ -392,4 +394,35 @@
 .admin-action-btns .btn-outline:hover {
     border-color: #667eea;
     color: #667eea;
+}
+/* Cell người dùng trong bảng dashboard (top + user mới) */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.user-avatar-small {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.user-avatar-small i {
+    line-height: 1;
+}
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(237, 137, 54, 0.12);
+    color: #dd6b20;
 }

@@ -38,6 +38,23 @@ public class CauHoi {
 	@Column(name = "dap_an_dung", columnDefinition = "TEXT")
 	private String dapAnDung;
 
+	/**
+	 * Các lựa chọn đáp án cho câu hỏi trắc nghiệm (MCQ).
+	 * Với câu hỏi dạng khác (đúng/sai, tự luận), có thể để null.
+	 * dapAnDung lưu chữ cái đúng: "A", "B", "C", hoặc "D"
+	 */
+	@Column(name = "lua_chon_a", columnDefinition = "TEXT")
+	private String luaChonA;
+
+	@Column(name = "lua_chon_b", columnDefinition = "TEXT")
+	private String luaChonB;
+
+	@Column(name = "lua_chon_c", columnDefinition = "TEXT")
+	private String luaChonC;
+
+	@Column(name = "lua_chon_d", columnDefinition = "TEXT")
+	private String luaChonD;
+
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "IDnguoi_dung", nullable = false)
 	private NguoiDung nguoiDung;

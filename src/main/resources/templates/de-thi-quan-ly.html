@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Đề Thi - Hệ Thống Thi Trắc Nghiệm</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== MODAL OVERLAY ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 680px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideDown 0.2s ease;
+        }
+        .modal-lg { max-width: 900px; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 25px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .modal-header h3 { font-size: 1.15rem; font-weight: 600; color: #2d3748; }
+        .modal-close {
+            background: none; border: none;
+            font-size: 1.4rem; color: #718096;
+            cursor: pointer; line-height: 1;
+        }
+        .modal-close:hover { color: #2d3748; }
+        .modal-body { padding: 25px; }
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 18px 25px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* ===== FORM STYLES ===== */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 6px;
+        }
+        .form-group label .required { color: #f56565; }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            color: #2d3748;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        .form-control:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+        .form-control.error { border-color: #f56565; }
+        .error-text { color: #f56565; font-size: 0.8rem; margin-top: 4px; }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        select.form-control { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23718096' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+        /* ===== BADGE / STATUS ===== */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-draft   { background: #fef3c7; color: #92400e; }
+        .badge-public  { background: #d1fae5; color: #065f46; }
+        .badge-deleted { background: #fee2e2; color: #991b1b; }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .filter-bar .form-control { width: auto; min-width: 160px; }
+        .filter-bar .search-input { min-width: 240px; }
+
+        /* ===== TABLE ACTION BUTTONS ===== */
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+        }
+        .btn-icon-edit   { background: #ebf8ff; color: #3182ce; }
+        .btn-icon-delete { background: #fff5f5; color: #e53e3e; }
+        .btn-icon-restore{ background: #f0fff4; color: #38a169; }
+        .btn-icon-hard   { background: #fff5f5; color: #9b2c2c; }
+        .btn-icon:hover { opacity: 0.8; transform: scale(1.05); }
+
+        /* ===== TABS ===== */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 5px;
+            border-radius: 10px;
+            width: fit-content;
+        }
+        .tab-btn {
+            padding: 8px 18px;
+            border: none;
+            background: none;
+            border-radius: 7px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #718096;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active { background: #fff; color: #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+        /* ===== TOAST NOTIFICATION ===== */
+        #toastContainer {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            min-width: 280px;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            animation: toastIn 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .toast-success { background: #f0fff4; color: #276749; border-left: 4px solid #48bb78; }
+        .toast-error   { background: #fff5f5; color: #9b2c2c; border-left: 4px solid #f56565; }
+        .toast-info    { background: #ebf8ff; color: #2a4a6b; border-left: 4px solid #4299e1; }
+        @keyframes toastIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+
+        /* ===== IMPORT PREVIEW ===== */
+        .import-drop-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .import-drop-zone:hover, .import-drop-zone.drag-over {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.04);
+        }
+        .import-preview-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .import-preview-item h4 { font-size: 0.9rem; color: #2d3748; margin-bottom: 8px; }
+        .import-option-row {
+            display: grid;
+            grid-template-columns: 30px 1fr;
+            align-items: start;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: 0.83rem;
+            color: #4a5568;
+        }
+        .option-label { font-weight: 600; color: #667eea; }
+        .correct-answer { font-weight: 700; color: #48bb78; }
+
+        /* ===== CONFIRM DIALOG ===== */
+        .confirm-icon { text-align: center; font-size: 3rem; margin-bottom: 12px; }
+        .confirm-msg  { text-align: center; color: #4a5568; font-size: 0.95rem; }
+        .confirm-msg strong { color: #2d3748; }
+    </style>
+</head>
+<body>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">QUẢN LÝ</span>
+                <a th:href="@{/dashboard/giao-vien}" class="menu-item">
+                    <i class="fas fa-home"></i><span>Trang Chủ</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/de-thi}" class="menu-item active">
+                    <i class="fas fa-file-alt"></i><span>Quản Lý Đề Thi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/ngan-hang-cau-hoi}" class="menu-item">
+                    <i class="fas fa-question-circle"></i><span>Ngân Hàng Câu Hỏi</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-users"></i><span>Quản Lý Sinh Viên</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-chart-bar"></i><span>Thống Kê</span>
+                </a>
+            </div>
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/giao-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i><span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i><span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+                <h1><i class="fas fa-file-alt" style="color:#667eea;margin-right:10px;"></i>Quản Lý Đề Thi</h1>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary btn-sm" id="btnImport">
+                    <i class="fas fa-upload"></i> Import PDF/DOCX
+                </button>
+                <button class="btn btn-primary btn-sm" id="btnTaoDeThi">
+                    <i class="fas fa-plus"></i> Tạo Đề Thi Mới
+                </button>
+                <div class="user-info">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge">Giáo viên</span>
+                    </div>
+                    <div class="user-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <!-- Stats row -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTong">0</span>
+                        <span class="stat-label">Tổng Đề Thi</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#f6ad55,#ed8936);">
+                        <i class="fas fa-pencil-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statNhap">0</span>
+                        <span class="stat-label">Đề Nháp</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#48bb78,#38a169);">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statCongKhai">0</span>
+                        <span class="stat-label">Đã Công Khai</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#f56565,#e53e3e);">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statDaXoa">0</span>
+                        <span class="stat-label">Đã Xóa (Thùng Rác)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs: Active / Trash -->
+            <div class="tab-bar">
+                <button class="tab-btn active" id="tabActive" onclick="chuyenTab('active')">
+                    <i class="fas fa-list"></i> Đề Thi Hiện Tại
+                </button>
+                <button class="tab-btn" id="tabTrash" onclick="chuyenTab('trash')">
+                    <i class="fas fa-trash-alt"></i> Thùng Rác
+                </button>
+            </div>
+
+            <!-- Main table card -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3 id="tableTitle"><i class="fas fa-list"></i> Danh Sách Đề Thi</h3>
+                    <!-- Filter bar -->
+                    <div class="filter-bar">
+                        <select class="form-control" id="filterMonHoc" onchange="applyFilter()">
+                            <option value="">Tất cả môn học</option>
+                        </select>
+                        <select class="form-control" id="filterTrangThai" onchange="applyFilter()">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="NHAP">Nháp</option>
+                            <option value="CONG_KHAI">Công khai</option>
+                        </select>
+                        <input type="search" class="form-control search-input" id="searchInput"
+                               placeholder="Tìm kiếm theo tên..." oninput="applyFilter()">
+                    </div>
+                </div>
+                <div class="card-body" style="overflow-x:auto;">
+                    <table class="data-table" id="deThiTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Tên Đề Thi</th>
+                                <th>Môn Học</th>
+                                <th>Thời Gian</th>
+                                <th>Câu Hỏi</th>
+                                <th>Lượt Thi</th>
+                                <th>Trạng Thái</th>
+                                <th>Ngày Tạo</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deThiBody">
+                            <tr><td colspan="9" style="text-align:center;padding:40px;color:#a0aec0;">
+                                <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== MODAL: TẠO / CHỈNH SỬA ĐỀ THI ===== -->
+    <div class="modal-overlay" id="modalDeThi">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalDeThiTitle"><i class="fas fa-plus-circle" style="color:#667eea;margin-right:8px;"></i>Tạo Đề Thi Mới</h3>
+                <button class="modal-close" onclick="dongModal('modalDeThi')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editDeThiId">
+                <div class="form-row">
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label>Tên Đề Thi <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="inputTenDeThi" placeholder="VD: Kiểm tra giữa kỳ môn Toán">
+                        <div class="error-text" id="errTenDeThi"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Môn Học <span class="required">*</span></label>
+                        <select class="form-control" id="inputMonHoc">
+                            <option value="">-- Chọn môn học --</option>
+                        </select>
+                        <div class="error-text" id="errMonHoc"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Thời Gian Làm Bài (phút) <span class="required">*</span></label>
+                        <input type="number" class="form-control" id="inputThoiGian" placeholder="60" min="1">
+                        <div class="error-text" id="errThoiGian"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Mô Tả</label>
+                    <textarea class="form-control" id="inputMoTa" placeholder="Mô tả ngắn về đề thi..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Trạng Thái</label>
+                        <select class="form-control" id="inputTrangThai">
+                            <option value="NHAP">📝 Nháp (chưa công khai)</option>
+                            <option value="CONG_KHAI">🌐 Công Khai</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Số Lần Thi Tối Đa</label>
+                        <input type="number" class="form-control" id="inputSoLan" placeholder="Không giới hạn" min="1">
+                    </div>
+                </div>
+                <div class="form-row" id="advancedSection">
+                    <div class="form-group">
+                        <label>Thời Gian Mở</label>
+                        <input type="datetime-local" class="form-control" id="inputThoiGianMo">
+                    </div>
+                    <div class="form-group">
+                        <label>Thời Gian Đóng</label>
+                        <input type="datetime-local" class="form-control" id="inputThoiGianDong">
+                    </div>
+                </div>
+                <div style="display:flex;gap:20px;margin-top:8px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#4a5568;">
+                        <input type="checkbox" id="inputTronCauHoi"> Trộn thứ tự câu hỏi
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;color:#4a5568;">
+                        <input type="checkbox" id="inputTronDapAn"> Trộn thứ tự đáp án
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="dongModal('modalDeThi')">Hủy</button>
+                <button class="btn btn-primary btn-sm" id="btnLuuDeThi" onclick="luuDeThi()">
+                    <i class="fas fa-save"></i> Lưu Đề Thi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: IMPORT FILE ===== -->
+    <div class="modal-overlay" id="modalImport">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-upload" style="color:#667eea;margin-right:8px;"></i>Import Đề Thi Từ File</h3>
+                <button class="modal-close" onclick="dongModal('modalImport')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Drop zone -->
+                <div class="import-drop-zone" id="importDropZone" onclick="document.getElementById('importFileInput').click()">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:3rem;color:#a0aec0;margin-bottom:12px;display:block;"></i>
+                    <p style="font-weight:600;color:#4a5568;">Kéo thả file vào đây hoặc <span style="color:#667eea;">nhấn để chọn</span></p>
+                    <p style="font-size:0.8rem;color:#a0aec0;margin-top:6px;">Hỗ trợ: PDF, DOCX (tối đa 10MB)</p>
+                </div>
+                <input type="file" id="importFileInput" accept=".pdf,.docx,.doc" style="display:none" onchange="handleImportFile(this)">
+
+                <!-- Format guide -->
+                <div style="background:#f8fafc;border-radius:10px;padding:16px;margin-top:16px;font-size:0.82rem;color:#718096;">
+                    <strong style="color:#4a5568;display:block;margin-bottom:8px;"><i class="fas fa-info-circle"></i> Định dạng file được hỗ trợ:</strong>
+                    <pre style="margin:0;white-space:pre-wrap;">Câu 1: Thủ đô của Việt Nam là?
+A. Hà Nội
+B. TP. Hồ Chí Minh
+C. Đà Nẵng
+D. Huế
+Đáp án: A</pre>
+                </div>
+
+                <!-- Loading -->
+                <div id="importLoading" style="display:none;text-align:center;padding:30px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#667eea;"></i>
+                    <p style="margin-top:10px;color:#718096;">Đang phân tích file...</p>
+                </div>
+
+                <!-- Preview results -->
+                <div id="importPreview" style="display:none;margin-top:16px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                        <h4 id="importPreviewTitle" style="font-size:1rem;color:#2d3748;"></h4>
+                        <span style="font-size:0.85rem;color:#718096;">Hiển thị <span id="importPreviewCount">0</span> câu hỏi</span>
+                    </div>
+                    <div id="importPreviewList" style="max-height:350px;overflow-y:auto;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="dongModal('modalImport')">Đóng</button>
+                <button class="btn btn-primary btn-sm" id="btnLuuImport" style="display:none;" onclick="luuCauHoiImport()">
+                    <i class="fas fa-save"></i> Lưu Tất Cả Vào Ngân Hàng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: CẤU HÌNH LƯU IMPORT ===== -->
+    <div class="modal-overlay" id="modalLuuImport">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-save" style="color:#667eea;margin-right:8px;"></i>Lưu Câu Hỏi Vào Ngân Hàng</h3>
+                <button class="modal-close" onclick="dongModal('modalLuuImport')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Summary -->
+                <div style="background:#ebf8ff;border-radius:10px;padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;">
+                    <i class="fas fa-info-circle" style="color:#3182ce;font-size:1.4rem;"></i>
+                    <div>
+                        <div style="font-weight:600;color:#2a4a6b;">Sắp lưu <span id="importSummaryCount" style="color:#3182ce;">0</span> câu hỏi</div>
+                        <div style="font-size:0.82rem;color:#4a5568;margin-top:2px;">Vui lòng chọn môn học và chủ đề trước khi lưu.</div>
+                    </div>
+                </div>
+
+                <!-- Môn học + Chủ đề -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Môn Học <span class="required">*</span></label>
+                        <select class="form-control" id="importMonHoc" onchange="onImportMonHocChange()">
+                            <option value="">-- Chọn môn học --</option>
+                        </select>
+                        <div class="error-text" id="errImportMonHoc"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Chủ Đề <span class="required">*</span></label>
+                        <select class="form-control" id="importChuDe" disabled>
+                            <option value="">-- Chọn chủ đề --</option>
+                        </select>
+                        <div class="error-text" id="errImportChuDe"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Độ Khó Mặc Định</label>
+                    <select class="form-control" id="importDoKho">
+                        <option value="DE">😊 Dễ</option>
+                        <option value="TRUNG_BINH" selected>😐 Trung Bình</option>
+                        <option value="KHO">😤 Khó</option>
+                    </select>
+                    <div style="font-size:0.78rem;color:#718096;margin-top:4px;">Áp dụng cho tất cả câu hỏi từ file import.</div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="importAutoFillAnswer" checked>
+                        <span style="font-size:0.875rem;color:#4a5568;">Tự động dùng đáp án "A" cho câu chưa xác định được đáp án</span>
+                    </label>
+                </div>
+
+                <!-- Progress bar (ẩn khi chưa lưu) -->
+                <div id="importProgressWrap" style="display:none;margin-top:10px;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#4a5568;margin-bottom:6px;">
+                        <span>Đang lưu...</span>
+                        <span id="importProgressText">0 / 0</span>
+                    </div>
+                    <div style="background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;">
+                        <div id="importProgressBar" style="background:linear-gradient(90deg,#667eea,#48bb78);height:100%;width:0%;transition:width 0.3s;border-radius:999px;"></div>
+                    </div>
+                    <div id="importProgressResult" style="margin-top:10px;font-size:0.85rem;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" id="btnHuyLuuImport" onclick="dongModal('modalLuuImport')">Hủy</button>
+                <button class="btn btn-primary btn-sm" id="btnXacNhanLuuImport" onclick="xacNhanLuuImport()">
+                    <i class="fas fa-save"></i> Lưu Câu Hỏi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: XÁC NHẬN XÓA MỀM ===== -->
+    <div class="modal-overlay" id="modalConfirmXoa">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-body" style="padding:30px 25px;">
+                <div class="confirm-icon">🗑️</div>
+                <div class="confirm-msg">
+                    Bạn có chắc muốn chuyển đề thi <strong id="confirmXoaTen"></strong> vào thùng rác?
+                    <br><small style="color:#718096;margin-top:8px;display:block;">Đề thi sẽ được ẩn khỏi danh sách và bạn có thể khôi phục sau.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="dongModal('modalConfirmXoa')">Hủy</button>
+                <button class="btn btn-sm" style="background:#f56565;color:#fff;" id="btnXacNhanXoa" onclick="xacNhanXoaMem()">
+                    <i class="fas fa-trash-alt"></i> Xóa Mềm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: XÁC NHẬN XÓA HẲN ===== -->
+    <div class="modal-overlay" id="modalConfirmXoaHan">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-body" style="padding:30px 25px;">
+                <div class="confirm-icon">⚠️</div>
+                <div class="confirm-msg">
+                    <strong style="color:#e53e3e;">Cảnh báo: Hành động này không thể hoàn tác!</strong>
+                    <br><br>Xóa hẳn đề thi <strong id="confirmXoaHanTen"></strong>?
+                    <br><small style="color:#718096;margin-top:8px;display:block;">Chỉ được xóa hẳn khi chưa có sinh viên nào làm bài.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="dongModal('modalConfirmXoaHan')">Hủy</button>
+                <button class="btn btn-sm" style="background:#9b2c2c;color:#fff;" id="btnXacNhanXoaHan" onclick="xacNhanXoaHan()">
+                    <i class="fas fa-times-circle"></i> Xóa Hẳn
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST CONTAINER ===== -->
+    <div id="toastContainer"></div>
+
+    <script th:src="@{/js/de-thi-quan-ly.js}"></script>
+</body>
+</html>
