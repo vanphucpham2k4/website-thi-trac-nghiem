@@ -79,6 +79,24 @@ public class DashboardController {
         return "giao-vien-ho-so";
     }
 
+    /**
+     * Trang quản lý đề thi của giáo viên
+     * URL: GET /dashboard/giao-vien/de-thi
+     */
+    @GetMapping("/giao-vien/de-thi")
+    public String trangQuanLyDeThi() {
+        return "de-thi-quan-ly";
+    }
+
+    /**
+     * Trang ngân hàng câu hỏi của giáo viên
+     * URL: GET /dashboard/giao-vien/ngan-hang-cau-hoi
+     */
+    @GetMapping("/giao-vien/ngan-hang-cau-hoi")
+    public String trangNganHangCauHoi() {
+        return "ngan-hang-cau-hoi";
+    }
+
     // ========================================
     // 2. API DASHBOARD SINH VIÊN
     // ========================================
