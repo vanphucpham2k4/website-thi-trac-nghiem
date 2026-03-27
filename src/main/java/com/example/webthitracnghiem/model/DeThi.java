@@ -63,24 +63,4 @@ public class DeThi {
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "IDnguoi_dung", nullable = false)
 	private NguoiDung nguoiDung;
-
-	/**
-	 * Trạng thái đề thi: NHAP (nháp, chưa công bố) hoặc CONG_KHAI (công khai cho sinh viên thi)
-	 * Mặc định là NHAP khi tạo mới
-	 */
-	@Column(name = "trang_thai", length = 20)
-	private String trangThai = "NHAP";
-
-	/**
-	 * Thời điểm xóa mềm — null có nghĩa đề thi chưa bị xóa.
-	 * Dùng cho Soft Delete: đánh dấu đề đã xóa mà không mất dữ liệu.
-	 */
-	@Column(name = "deleted_at")
-	private LocalDateTime deletedAt;
-
-	/**
-	 * Thời điểm tạo đề thi — dùng để sắp xếp và hiển thị thông tin.
-	 */
-	@Column(name = "thoi_gian_tao")
-	private LocalDateTime thoiGianTao;
 }

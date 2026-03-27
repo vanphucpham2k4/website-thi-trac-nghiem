@@ -12,7 +12,4 @@ public interface DeThiCauHoiRepository extends JpaRepository<DeThiCauHoi, String
     void deleteByDeThi(DeThi deThi);
 
     void deleteByCauHoi(CauHoi cauHoi);
-
-    /** Đếm số câu hỏi trong một đề thi */
-    long countByDeThi(DeThi deThi);
 }
