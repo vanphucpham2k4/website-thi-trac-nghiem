@@ -272,7 +272,8 @@ body {
     right: 15px;
     top: 42px;
     font-size: 1.1rem;
-    display: none;
+    display: none !important;
+    pointer-events: none;
 }
 
 .input-icon.valid {
@@ -281,6 +282,15 @@ body {
 
 .input-icon.invalid {
     color: var(--error-color);
+}
+
+/* Chỉ hiện icon khi input cùng form-group có trạng thái validate */
+.form-group input.error ~ .input-icon.invalid {
+    display: inline-block !important;
+}
+
+.form-group input.valid ~ .input-icon.valid {
+    display: inline-block !important;
 }
 
 /* Thông báo lỗi dưới input */
