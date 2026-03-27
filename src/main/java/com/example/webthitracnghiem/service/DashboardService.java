@@ -4,11 +4,11 @@ import com.example.webthitracnghiem.dto.AdminDashboardDTO;
 import com.example.webthitracnghiem.dto.GiaoVienDashboardDTO;
 import com.example.webthitracnghiem.dto.NguoiDungDTO;
 import com.example.webthitracnghiem.dto.SinhVienDashboardDTO;
-import com.example.webthitracnghiem.entity.DeThi;
-import com.example.webthitracnghiem.entity.KetQuaThi;
-import com.example.webthitracnghiem.entity.MonHoc;
-import com.example.webthitracnghiem.entity.NguoiDung;
-import com.example.webthitracnghiem.entity.PhienThi;
+import com.example.webthitracnghiem.model.DeThi;
+import com.example.webthitracnghiem.model.KetQuaThi;
+import com.example.webthitracnghiem.model.MonHoc;
+import com.example.webthitracnghiem.model.NguoiDung;
+import com.example.webthitracnghiem.model.PhienThi;
 import com.example.webthitracnghiem.repository.*;
 import org.springframework.stereotype.Service;
 

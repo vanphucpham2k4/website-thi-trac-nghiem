@@ -4,7 +4,7 @@ import com.example.webthitracnghiem.dto.ApiResponse;
 import com.example.webthitracnghiem.dto.CapNhatHoSoSinhVienDTO;
 import com.example.webthitracnghiem.dto.DoiMatKhauDTO;
 import com.example.webthitracnghiem.dto.NguoiDungDTO;
-import com.example.webthitracnghiem.entity.NguoiDung;
+import com.example.webthitracnghiem.model.NguoiDung;
 import com.example.webthitracnghiem.repository.NguoiDungRepository;
 import com.example.webthitracnghiem.repository.NguoiDungVaiTroRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;

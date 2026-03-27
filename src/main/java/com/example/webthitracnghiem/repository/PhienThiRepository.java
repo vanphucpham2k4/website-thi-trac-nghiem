@@ -1,8 +1,8 @@
 package com.example.webthitracnghiem.repository;
 
-import com.example.webthitracnghiem.entity.DeThi;
-import com.example.webthitracnghiem.entity.NguoiDung;
-import com.example.webthitracnghiem.entity.PhienThi;
+import com.example.webthitracnghiem.model.DeThi;
+import com.example.webthitracnghiem.model.NguoiDung;
+import com.example.webthitracnghiem.model.PhienThi;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

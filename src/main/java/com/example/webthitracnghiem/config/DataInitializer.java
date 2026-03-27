@@ -1,8 +1,8 @@
 package com.example.webthitracnghiem.config;
 
-import com.example.webthitracnghiem.entity.NguoiDung;
-import com.example.webthitracnghiem.entity.NguoiDungVaiTro;
-import com.example.webthitracnghiem.entity.VaiTro;
+import com.example.webthitracnghiem.model.NguoiDung;
+import com.example.webthitracnghiem.model.NguoiDungVaiTro;
+import com.example.webthitracnghiem.model.VaiTro;
 import com.example.webthitracnghiem.repository.NguoiDungRepository;
 import com.example.webthitracnghiem.repository.NguoiDungVaiTroRepository;
 import com.example.webthitracnghiem.repository.VaiTroRepository;

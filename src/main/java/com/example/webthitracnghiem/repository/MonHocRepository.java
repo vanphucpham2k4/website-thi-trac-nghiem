@@ -1,6 +1,6 @@
 package com.example.webthitracnghiem.repository;
 
-import com.example.webthitracnghiem.entity.MonHoc;
+import com.example.webthitracnghiem.model.MonHoc;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

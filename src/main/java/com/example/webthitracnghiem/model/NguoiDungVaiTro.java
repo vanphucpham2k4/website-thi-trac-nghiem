@@ -1,4 +1,4 @@
-package com.example.webthitracnghiem.entity;
+package com.example.webthitracnghiem.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,19 +12,21 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "chu_de")
+@Table(name = "nguoi_dung_vai_tro")
 @Getter
 @Setter
 @NoArgsConstructor
-public class ChuDe {
+public class NguoiDungVaiTro {
 
 	@Id
 	@Column(length = 36)
 	private String id;
 
-	private String ten;
+	@ManyToOne(optional = false, fetch = FetchType.LAZY)
+	@JoinColumn(name = "IDnguoi_dung", nullable = false)
+	private NguoiDung nguoiDung;
 
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
-	@JoinColumn(name = "IDmon_hoc", nullable = false)
-	private MonHoc monHoc;
+	@JoinColumn(name = "IDvai_tro", nullable = false)
+	private VaiTro vaiTro;
 }

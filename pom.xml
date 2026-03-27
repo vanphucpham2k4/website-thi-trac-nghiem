@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-		<!-- Phiên bản Lombok dùng cho annotation processor (tránh lỗi entity không compile → package entity "không tồn tại") -->
+		<!-- Phiên bản Lombok dùng cho annotation processor (tránh lỗi model không compile → package model "không tồn tại") -->
 		<!-- >= 1.18.38: hỗ trợ JDK 24+ (tránh lỗi TypeTag :: UNKNOWN khi compile) -->
 		<lombok.version>1.18.38</lombok.version>
 	</properties>
@@ -110,7 +110,7 @@
 
 	<build>
 		<plugins>
-			<!-- Bắt buộc chạy Lombok khi compile — IntelliJ/Maven mới nhận đủ getter/setter cho entity -->
+			<!-- Bắt buộc chạy Lombok khi compile — IntelliJ/Maven mới nhận đủ getter/setter cho model -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
