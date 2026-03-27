@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -69,4 +70,7 @@ public interface NguoiDungRepository extends JpaRepository<NguoiDung, String> {
             @Param("taiKhoan") String taiKhoan,
             @Param("matKhau") String matKhau
     );
+
+    @Query("SELECT nd FROM NguoiDung nd JOIN NguoiDungVaiTro ndvt ON ndvt.nguoiDung = nd WHERE ndvt.vaiTro.tenVaiTro = :tenVaiTro")
+    List<NguoiDung> findByVaiTro(@Param("tenVaiTro") String tenVaiTro);
 }
