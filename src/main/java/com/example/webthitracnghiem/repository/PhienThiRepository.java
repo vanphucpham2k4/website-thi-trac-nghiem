@@ -54,4 +54,10 @@ public interface PhienThiRepository extends JpaRepository<PhienThi, String> {
      * @return Danh sách phiên thi đang thi
      */
     List<PhienThi> findByNguoiDungAndTrangThai(NguoiDung nguoiDung, String trangThai);
+
+    /**
+     * Kiểm tra đề thi có bài làm của sinh viên nào chưa.
+     * Dùng cho ràng buộc Hard Delete: chỉ cho phép xóa hẳn khi chưa có bài làm.
+     */
+    boolean existsByDeThi(DeThi deThi);
 }

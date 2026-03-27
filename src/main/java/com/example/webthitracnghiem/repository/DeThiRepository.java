@@ -52,4 +52,34 @@ public interface DeThiRepository extends JpaRepository<DeThi, String> {
      * @return Số lượng đề thi
      */
     long countByNguoiDung(NguoiDung nguoiDung);
+
+    // ================================================================
+    // SOFT DELETE AWARE QUERIES — chỉ lấy đề thi chưa bị xóa mềm
+    // ================================================================
+
+    /**
+     * Lấy tất cả đề thi chưa bị xóa của một giáo viên (sắp xếp theo thời gian tạo mới nhất)
+     */
+    List<DeThi> findByNguoiDungAndDeletedAtIsNullOrderByThoiGianTaoDesc(NguoiDung nguoiDung);
+
+    /**
+     * Lấy tất cả đề thi đã bị xóa mềm của một giáo viên
+     */
+    List<DeThi> findByNguoiDungAndDeletedAtIsNotNull(NguoiDung nguoiDung);
+
+    /**
+     * Đếm số đề thi chưa xóa của một giáo viên
+     */
+    long countByNguoiDungAndDeletedAtIsNull(NguoiDung nguoiDung);
+
+    /**
+     * Đếm số đề thi theo trạng thái (NHAP/CONG_KHAI) của giáo viên (chưa xóa)
+     */
+    long countByNguoiDungAndTrangThaiAndDeletedAtIsNull(NguoiDung nguoiDung, String trangThai);
+
+    /**
+     * Tìm đề thi chưa xóa theo ID (an toàn hơn findById thông thường)
+     */
+    @Query("SELECT d FROM DeThi d WHERE d.id = :id AND d.deletedAt IS NULL")
+    java.util.Optional<DeThi> findByIdAndNotDeleted(@Param("id") String id);
 }
