@@ -1,6 +1,6 @@
 package com.example.webthitracnghiem.repository;
 
-import com.example.webthitracnghiem.entity.VaiTro;
+import com.example.webthitracnghiem.model.VaiTro;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,4 +1,4 @@
-package com.example.webthitracnghiem.entity;
+package com.example.webthitracnghiem.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

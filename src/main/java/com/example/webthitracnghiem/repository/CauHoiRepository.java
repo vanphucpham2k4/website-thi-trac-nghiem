@@ -1,7 +1,7 @@
 package com.example.webthitracnghiem.repository;
 
-import com.example.webthitracnghiem.entity.CauHoi;
-import com.example.webthitracnghiem.entity.NguoiDung;
+import com.example.webthitracnghiem.model.CauHoi;
+import com.example.webthitracnghiem.model.NguoiDung;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

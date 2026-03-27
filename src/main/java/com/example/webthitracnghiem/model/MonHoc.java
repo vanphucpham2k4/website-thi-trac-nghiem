@@ -1,4 +1,4 @@
-package com.example.webthitracnghiem.entity;
+package com.example.webthitracnghiem.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,18 +9,17 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "vai_tro")
+@Table(name = "mon_hoc")
 @Getter
 @Setter
 @NoArgsConstructor
-public class VaiTro {
+public class MonHoc {
 
 	@Id
 	@Column(length = 36)
 	private String id;
 
-	@Column(name = "ten_vai_tro")
-	private String tenVaiTro;
+	private String ten;
 
 	@Column(name = "mo_ta", columnDefinition = "TEXT")
 	private String moTa;

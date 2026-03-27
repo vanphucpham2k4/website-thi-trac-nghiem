@@ -1,7 +1,7 @@
 package com.example.webthitracnghiem.service;
 
 import com.example.webthitracnghiem.dto.*;
-import com.example.webthitracnghiem.entity.*;
+import com.example.webthitracnghiem.model.*;
 import com.example.webthitracnghiem.repository.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

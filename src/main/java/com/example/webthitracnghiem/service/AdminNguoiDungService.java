@@ -5,7 +5,7 @@ import com.example.webthitracnghiem.dto.AdminDatLaiMatKhauDTO;
 import com.example.webthitracnghiem.dto.AdminDoiVaiTroDTO;
 import com.example.webthitracnghiem.dto.AdminNguoiDungItemDTO;
 import com.example.webthitracnghiem.dto.ApiResponse;
-import com.example.webthitracnghiem.entity.*;
+import com.example.webthitracnghiem.model.*;
 import com.example.webthitracnghiem.repository.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
