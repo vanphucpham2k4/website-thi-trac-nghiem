@@ -420,6 +420,12 @@ public class DataInitializer implements CommandLineRunner {
         log("  Đã tạo 4 đề thi mẫu.");
     }
 
+
+
+
+
+
+
     private DeThi taoMotDeThi(String ten, MonHoc monHoc, NguoiDung gv,
                                int thoiGianPhut, String maDeThi, String moTa,
                                String trangThai, int soLanToiDa,
@@ -490,8 +496,4 @@ public class DataInitializer implements CommandLineRunner {
 
 }
 
-
-
-
-ưư
 
