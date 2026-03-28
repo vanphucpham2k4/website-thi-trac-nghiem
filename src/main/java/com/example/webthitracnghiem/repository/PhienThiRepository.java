@@ -77,4 +77,10 @@ public interface PhienThiRepository extends JpaRepository<PhienThi, String> {
      */
     @Query("SELECT p FROM PhienThi p WHERE p.nguoiDung = :nguoiDung AND p.deThi = :deThi AND p.thoiGianBatDau IS NOT NULL AND p.thoiGianNop IS NULL")
     Optional<PhienThi> timPhienDangDo(@Param("nguoiDung") NguoiDung nguoiDung, @Param("deThi") DeThi deThi);
+
+    /**
+     * Đếm số phiên thi theo từng sinh viên, chỉ các đề chưa xóa mềm của giáo viên chỉ định.
+     */
+    @Query("SELECT p.nguoiDung.id, COUNT(p) FROM PhienThi p WHERE p.deThi.nguoiDung.id = :giaoVienId AND p.deThi.deletedAt IS NULL GROUP BY p.nguoiDung.id")
+    List<Object[]> demSoPhienThiTheoSinhVienCuaGiaoVien(@Param("giaoVienId") String giaoVienId);
 }

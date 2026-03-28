@@ -65,6 +65,24 @@ public class DashboardController {
     }
 
     /**
+     * Trang Môn học (sinh viên) — placeholder.
+     * URL: GET /dashboard/sinh-vien/mon-hoc
+     */
+    @GetMapping("/sinh-vien/mon-hoc")
+    public String trangMonHocSinhVien() {
+        return "sinh-vien-mon-hoc";
+    }
+
+    /**
+     * Trang Lịch sử thi (sinh viên) — placeholder.
+     * URL: GET /dashboard/sinh-vien/lich-su-thi
+     */
+    @GetMapping("/sinh-vien/lich-su-thi")
+    public String trangLichSuThiSinhVien() {
+        return "sinh-vien-lich-su-thi";
+    }
+
+    /**
      * Trả về trang Dashboard của GIÁO VIÊN
      * URL: GET /dashboard/giao-vien
      *
@@ -115,6 +133,15 @@ public class DashboardController {
     @GetMapping("/giao-vien/ngan-hang-cau-hoi")
     public String trangNganHangCauHoi() {
         return "ngan-hang-cau-hoi";
+    }
+
+    /**
+     * Trang Quản lý sinh viên (giáo viên).
+     * URL: GET /dashboard/giao-vien/quan-ly-sinh-vien
+     */
+    @GetMapping("/giao-vien/quan-ly-sinh-vien")
+    public String trangQuanLySinhVienGiaoVien() {
+        return "giao-vien-quan-ly-sinh-vien";
     }
 
     // ========================================

@@ -1,5 +1,5 @@
 /**
- * Trang Phòng thi (sinh viên) — placeholder; sidebar + xác thực JWT.
+ * Trang placeholder sinh viên (Phòng thi, Môn học, …) — sidebar + xác thực JWT.
  */
 const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
 
