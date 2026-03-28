@@ -188,6 +188,100 @@ public class DeThiApiController {
     }
 
     // ================================================================
+    // GET /api/giao-vien/de-thi/{id}/cau-hoi — Câu hỏi trong đề
+    // ================================================================
+
+    @GetMapping("/{id}/cau-hoi")
+    public ResponseEntity<ApiResponse<List<DeThiCauHoiDTO>>> layCauHoiTrongDe(
+            @PathVariable("id") String deThiId,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoi401();
+
+        ApiResponse<List<DeThiCauHoiDTO>> res = deThiService.layCauHoiTrongDe(deThiId, userId);
+        if (!res.isSuccess()) return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // GET /api/giao-vien/de-thi/{id}/cau-hoi/ngan-hang — Ngân hàng chưa có trong đề
+    // ================================================================
+
+    @GetMapping("/{id}/cau-hoi/ngan-hang")
+    public ResponseEntity<ApiResponse<List<CauHoiListItemDTO>>> layNganHangChoThem(
+            @PathVariable("id") String deThiId,
+            @RequestParam(value = "monHocId", required = false) String monHocId,
+            @RequestParam(value = "chuDeId",  required = false) String chuDeId,
+            @RequestParam(value = "doKho",    required = false) String doKho,
+            @RequestParam(value = "keyword",  required = false) String keyword,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoi401();
+
+        ApiResponse<List<CauHoiListItemDTO>> res =
+                deThiService.layNganHangChoThem(deThiId, userId, monHocId, chuDeId, doKho, keyword);
+        if (!res.isSuccess()) return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // POST /api/giao-vien/de-thi/{id}/cau-hoi — Thêm câu hỏi vào đề
+    // ================================================================
+
+    @PostMapping("/{id}/cau-hoi")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> themCauHoi(
+            @PathVariable("id") String deThiId,
+            @Valid @RequestBody ThemCauHoiVaoDeDTO dto,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoi401();
+
+        ApiResponse<Map<String, Object>> res =
+                deThiService.themCauHoiVaoDe(deThiId, dto.getCauHoiIds(), userId);
+        if (!res.isSuccess()) return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // DELETE /api/giao-vien/de-thi/{id}/cau-hoi/{cauHoiId} — Xóa câu hỏi khỏi đề
+    // ================================================================
+
+    @DeleteMapping("/{id}/cau-hoi/{cauHoiId}")
+    public ResponseEntity<ApiResponse<Void>> xoaCauHoiKhoiDe(
+            @PathVariable("id")       String deThiId,
+            @PathVariable("cauHoiId") String cauHoiId,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoiVoid401();
+
+        ApiResponse<Void> res = deThiService.xoaCauHoiKhoiDe(deThiId, cauHoiId, userId);
+        if (!res.isSuccess()) return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // PUT /api/giao-vien/de-thi/{id}/cau-hoi/thu-tu — Sắp xếp thứ tự
+    // ================================================================
+
+    @PutMapping("/{id}/cau-hoi/thu-tu")
+    public ResponseEntity<ApiResponse<Void>> capNhatThuTu(
+            @PathVariable("id") String deThiId,
+            @RequestBody List<String> cauHoiIdsOrdered,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoiVoid401();
+
+        ApiResponse<Void> res = deThiService.capNhatThuTu(deThiId, cauHoiIdsOrdered, userId);
+        if (!res.isSuccess()) return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
     // POST /api/giao-vien/de-thi/import — Import từ file PDF/DOCX
     // ================================================================
 

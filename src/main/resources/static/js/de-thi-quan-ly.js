@@ -271,6 +271,9 @@ function renderActions(d) {
             </button>`;
     }
     return `
+        <button class="btn-icon btn-icon-question" title="Quản lý câu hỏi" onclick="moModalCauHoiDeThi('${d.id}','${escHtml(d.tenDeThi)}')">
+            <i class="fas fa-list-ol"></i>
+        </button>
         <button class="btn-icon btn-icon-edit" title="Chỉnh sửa" onclick="moModalSua('${d.id}')">
             <i class="fas fa-edit"></i>
         </button>
@@ -793,4 +796,322 @@ function localDateTimeStr(dateStr) {
         const pad = n => n.toString().padStart(2, '0');
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     } catch { return ''; }
+}
+
+// ============================================================
+// QUẢN LÝ CÂU HỎI TRONG ĐỀ THI
+// ============================================================
+let currentDeThiId   = null;   // ID đề đang quản lý
+let sortableInstance = null;   // SortableJS instance
+let bankFilterTimer  = null;   // debounce timer cho filter ngân hàng
+let daDuocChon       = new Set(); // set cauHoiId đang checked ở ngân hàng
+
+// ── Mở modal quản lý câu hỏi ──────────────────────────────
+async function moModalCauHoiDeThi(deThiId, tenDeThi) {
+    currentDeThiId = deThiId;
+    daDuocChon     = new Set();
+
+    document.getElementById('modalCauHoiTenDe').textContent = tenDeThi;
+    document.getElementById('modalCauHoiCount').textContent = '';
+
+    // Reset panels
+    document.getElementById('cauHoiTrongDeList').innerHTML =
+        '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+    document.getElementById('nganHangList').innerHTML =
+        '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+    document.getElementById('chkAll').checked   = false;
+    document.getElementById('chonCount').textContent = '';
+
+    // Reset filter ngân hàng
+    document.getElementById('bankMonHoc').value  = '';
+    document.getElementById('bankChuDe').value   = '';
+    document.getElementById('bankDoKho').value   = '';
+    document.getElementById('bankKeyword').value = '';
+
+    moModal('modalCauHoiDeThi');
+
+    // Load parallel
+    await Promise.all([
+        loadCauHoiTrongDe(),
+        khoiTaoMonHocNganHang(),
+    ]);
+    await loadNganHang();
+}
+
+function dongModalCauHoi() {
+    dongModal('modalCauHoiDeThi');
+    // Reload bảng đề thi để cập nhật số câu hỏi
+    taiDanhSachDeThi();
+}
+
+// ── Tải câu hỏi đang có trong đề ──────────────────────────
+async function loadCauHoiTrongDe() {
+    try {
+        const res = await apiGet(`${API_BASE}/${currentDeThiId}/cau-hoi`);
+        if (!res.success) { showToast(res.message || 'Lỗi tải câu hỏi!', 'error'); return; }
+
+        renderCauHoiTrongDe(res.data || []);
+    } catch { showToast('Lỗi kết nối!', 'error'); }
+}
+
+function renderCauHoiTrongDe(list) {
+    const container = document.getElementById('cauHoiTrongDeList');
+    document.getElementById('deCount').textContent = list.length;
+    document.getElementById('modalCauHoiCount').textContent = `${list.length} câu`;
+
+    if (list.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                Chưa có câu hỏi nào.<br>
+                <small>Chọn câu hỏi từ ngân hàng bên phải để thêm.</small>
+            </div>`;
+        initSortable([]);
+        return;
+    }
+
+    container.innerHTML = list.map(c => `
+        <div class="cau-hoi-card" data-cau-hoi-id="${c.cauHoiId}">
+            <div class="card-top">
+                <span class="card-stt">${c.thuTu}</span>
+                <div class="card-content">
+                    <div class="card-question">${escHtml(truncateCH(c.noiDung || '', 120))}</div>
+                    <div class="card-meta">
+                        ${badgeDoKhoSmall(c.doKho)}
+                        <span style="font-size:0.75rem;color:#718096;">${escHtml(c.tenChuDe || '')} · ${escHtml(c.tenMonHoc || '')}</span>
+                        ${c.dapAnDung ? `<span style="font-size:0.75rem;font-weight:700;color:#667eea;">ĐA: ${escHtml(c.dapAnDung)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <span class="drag-handle" title="Kéo để sắp xếp"><i class="fas fa-grip-vertical"></i></span>
+                    <button class="btn-icon btn-icon-delete" style="width:26px;height:26px;font-size:0.75rem;"
+                            title="Xóa khỏi đề" onclick="xoaCauHoiKhoiDe('${c.cauHoiId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    initSortable(list);
+}
+
+function initSortable(list) {
+    const el = document.getElementById('cauHoiTrongDeList');
+    if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
+    if (list.length === 0) return;
+
+    sortableInstance = Sortable.create(el, {
+        animation: 150,
+        handle:    '.drag-handle',
+        ghostClass:'sortable-ghost',
+        onEnd: () => {
+            // Cập nhật số thứ tự hiển thị sau khi kéo
+            const cards = el.querySelectorAll('.cau-hoi-card');
+            cards.forEach((card, i) => {
+                const stt = card.querySelector('.card-stt');
+                if (stt) stt.textContent = i + 1;
+            });
+        }
+    });
+}
+
+// ── Xóa câu hỏi khỏi đề ───────────────────────────────────
+async function xoaCauHoiKhoiDe(cauHoiId) {
+    try {
+        const res = await apiDelete(`${API_BASE}/${currentDeThiId}/cau-hoi/${cauHoiId}`);
+        if (res.success) {
+            showToast('Đã xóa câu hỏi khỏi đề!', 'success');
+            await Promise.all([loadCauHoiTrongDe(), loadNganHang()]);
+        } else {
+            showToast(res.message || 'Xóa thất bại!', 'error');
+        }
+    } catch { showToast('Lỗi kết nối!', 'error'); }
+}
+
+// ── Lưu thứ tự sau khi kéo thả ────────────────────────────
+async function luuThuTu() {
+    const cards = document.querySelectorAll('#cauHoiTrongDeList .cau-hoi-card');
+    const orderedIds = Array.from(cards).map(c => c.dataset.cauHoiId);
+
+    if (orderedIds.length === 0) { showToast('Không có câu hỏi để sắp xếp!', 'info'); return; }
+
+    try {
+        const res = await fetch(`${API_BASE}/${currentDeThiId}/cau-hoi/thu-tu`, {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderedIds)
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Đã lưu thứ tự câu hỏi!', 'success');
+            await loadCauHoiTrongDe();
+        } else {
+            showToast(data.message || 'Lưu thứ tự thất bại!', 'error');
+        }
+    } catch { showToast('Lỗi kết nối!', 'error'); }
+}
+
+// ── Ngân hàng câu hỏi (panel phải) ───────────────────────
+async function khoiTaoMonHocNganHang() {
+    try {
+        const res = await apiGet('/api/giao-vien/ngan-hang-cau-hoi/mon-hoc');
+        if (!res.success) return;
+        const sel = document.getElementById('bankMonHoc');
+        sel.innerHTML = '<option value="">Tất cả môn</option>';
+        (res.data || []).forEach(mh => sel.appendChild(new Option(mh.ten, mh.id)));
+    } catch (e) { console.error(e); }
+}
+
+async function onBankMonHocChange() {
+    const monHocId = document.getElementById('bankMonHoc').value;
+    const chuDeEl  = document.getElementById('bankChuDe');
+    chuDeEl.innerHTML = '<option value="">Tất cả chủ đề</option>';
+
+    if (monHocId) {
+        try {
+            const res = await apiGet(`/api/giao-vien/ngan-hang-cau-hoi/chu-de?monHocId=${encodeURIComponent(monHocId)}`);
+            if (res.success) {
+                (res.data || []).forEach(cd => chuDeEl.appendChild(new Option(cd.ten, cd.id)));
+            }
+        } catch (e) { console.error(e); }
+    }
+    await loadNganHang();
+}
+
+function debounceBankFilter() {
+    clearTimeout(bankFilterTimer);
+    bankFilterTimer = setTimeout(loadNganHang, 300);
+}
+
+async function loadNganHang() {
+    if (!currentDeThiId) return;
+    const monHocId = document.getElementById('bankMonHoc').value   || '';
+    const chuDeId  = document.getElementById('bankChuDe').value    || '';
+    const doKho    = document.getElementById('bankDoKho').value    || '';
+    const keyword  = document.getElementById('bankKeyword').value  || '';
+
+    let url = `${API_BASE}/${currentDeThiId}/cau-hoi/ngan-hang?`;
+    if (monHocId) url += `monHocId=${encodeURIComponent(monHocId)}&`;
+    if (chuDeId)  url += `chuDeId=${encodeURIComponent(chuDeId)}&`;
+    if (doKho)    url += `doKho=${encodeURIComponent(doKho)}&`;
+    if (keyword)  url += `keyword=${encodeURIComponent(keyword)}&`;
+
+    try {
+        const res = await apiGet(url);
+        if (!res.success) { showToast(res.message || 'Lỗi tải ngân hàng!', 'error'); return; }
+        renderNganHang(res.data || []);
+    } catch { showToast('Lỗi kết nối!', 'error'); }
+}
+
+function renderNganHang(list) {
+    const container = document.getElementById('nganHangList');
+    document.getElementById('bankCount').textContent = list.length;
+    document.getElementById('chkAll').checked = false;
+    daDuocChon = new Set();
+    capNhatChonCount();
+
+    if (list.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                Không tìm thấy câu hỏi phù hợp.<br>
+                <small>Thử thay đổi bộ lọc hoặc thêm câu hỏi mới vào ngân hàng.</small>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(c => `
+        <div class="bank-card" onclick="toggleChon(this, '${c.id}')">
+            <input type="checkbox" class="bank-chk" data-id="${c.id}" onclick="event.stopPropagation();toggleChonCheckbox(this,'${c.id}')">
+            <div class="bank-card-text">
+                <div class="bank-card-q">${escHtml(truncateCH(c.noiDung || '', 110))}</div>
+                <div class="bank-card-meta">
+                    ${badgeDoKhoSmall(c.doKho)}
+                    ${escHtml(c.tenChuDe || '')} · ${escHtml(c.tenMonHoc || '')}
+                    ${c.dapAnDung ? `· <span style="font-weight:700;color:#667eea;">ĐA: ${escHtml(c.dapAnDung)}</span>` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleChon(cardEl, cauHoiId) {
+    const chk = cardEl.querySelector('.bank-chk');
+    if (!chk) return;
+    chk.checked = !chk.checked;
+    toggleChonCheckbox(chk, cauHoiId);
+}
+
+function toggleChonCheckbox(chk, cauHoiId) {
+    const card = chk.closest('.bank-card');
+    if (chk.checked) {
+        daDuocChon.add(cauHoiId);
+        card.classList.add('selected');
+    } else {
+        daDuocChon.delete(cauHoiId);
+        card.classList.remove('selected');
+    }
+    capNhatChonCount();
+    // Đồng bộ "chọn tất cả"
+    const allChk = document.querySelectorAll('.bank-chk');
+    const allChecked = Array.from(allChk).every(c => c.checked);
+    document.getElementById('chkAll').checked = allChk.length > 0 && allChecked;
+}
+
+function toggleChonTatCa(masterChk) {
+    daDuocChon = new Set();
+    document.querySelectorAll('.bank-chk').forEach(chk => {
+        chk.checked = masterChk.checked;
+        const card = chk.closest('.bank-card');
+        if (masterChk.checked) {
+            daDuocChon.add(chk.dataset.id);
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    });
+    capNhatChonCount();
+}
+
+function capNhatChonCount() {
+    const n = daDuocChon.size;
+    document.getElementById('chonCount').textContent = n > 0 ? `(Đã chọn ${n})` : '';
+}
+
+// ── Thêm câu hỏi đã chọn vào đề ──────────────────────────
+async function themCauHoiDaChon() {
+    if (daDuocChon.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 câu hỏi!', 'info'); return;
+    }
+
+    try {
+        const res = await apiPost(`${API_BASE}/${currentDeThiId}/cau-hoi`, {
+            cauHoiIds: Array.from(daDuocChon)
+        });
+
+        if (res.success) {
+            showToast(res.message || 'Thêm câu hỏi thành công!', 'success');
+            daDuocChon = new Set();
+            document.getElementById('chkAll').checked = false;
+            await Promise.all([loadCauHoiTrongDe(), loadNganHang()]);
+        } else {
+            showToast(res.message || 'Thêm thất bại!', 'error');
+        }
+    } catch { showToast('Lỗi kết nối!', 'error'); }
+}
+
+// ── Helpers display ────────────────────────────────────────
+function badgeDoKhoSmall(doKho) {
+    const map = { DE: '#d1fae5;color:#065f46', TRUNG_BINH: '#fef3c7;color:#92400e', KHO: '#fee2e2;color:#991b1b' };
+    const labels = { DE: '😊 Dễ', TRUNG_BINH: '😐 T.Bình', KHO: '😤 Khó' };
+    const style = map[doKho] || '';
+    const label = labels[doKho] || '';
+    return style
+        ? `<span style="background:${style};padding:1px 7px;border-radius:999px;font-size:0.72rem;font-weight:600;">${label}</span>`
+        : '';
+}
+
+function truncateCH(str, maxLen) {
+    return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
 }

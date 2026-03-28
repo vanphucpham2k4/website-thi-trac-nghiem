@@ -3,6 +3,7 @@ package com.example.webthitracnghiem.service;
 import com.example.webthitracnghiem.dto.*;
 import com.example.webthitracnghiem.entity.*;
 import com.example.webthitracnghiem.repository.*;
+import com.example.webthitracnghiem.repository.CauHoiRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,17 +24,20 @@ public class DeThiService {
     private final NguoiDungRepository nguoiDungRepository;
     private final PhienThiRepository phienThiRepository;
     private final DeThiCauHoiRepository deThiCauHoiRepository;
+    private final CauHoiRepository cauHoiRepository;
 
     public DeThiService(DeThiRepository deThiRepository,
                         MonHocRepository monHocRepository,
                         NguoiDungRepository nguoiDungRepository,
                         PhienThiRepository phienThiRepository,
-                        DeThiCauHoiRepository deThiCauHoiRepository) {
+                        DeThiCauHoiRepository deThiCauHoiRepository,
+                        CauHoiRepository cauHoiRepository) {
         this.deThiRepository = deThiRepository;
         this.monHocRepository = monHocRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.phienThiRepository = phienThiRepository;
         this.deThiCauHoiRepository = deThiCauHoiRepository;
+        this.cauHoiRepository = cauHoiRepository;
     }
 
     // ================================================================
@@ -313,5 +317,239 @@ public class DeThiService {
     /** Tạo mã đề thi dạng DE-XXXXXXXX (8 ký tự hex ngẫu nhiên) */
     private String taoMaDeThi() {
         return "DE-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+    }
+
+    // ================================================================
+    // 8. QUẢN LÝ CÂU HỎI TRONG ĐỀ THI
+    // ================================================================
+
+    /**
+     * Lấy danh sách câu hỏi đang có trong đề thi (sắp xếp theo thứ tự).
+     */
+    public ApiResponse<List<DeThiCauHoiDTO>> layCauHoiTrongDe(String deThiId, String nguoiDungId) {
+        Optional<DeThi> optDeThi = deThiRepository.findByIdAndNotDeleted(deThiId);
+        if (optDeThi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy đề thi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        DeThi deThi = optDeThi.get();
+        if (!deThi.getNguoiDung().getId().equals(nguoiDungId)) {
+            return ApiResponse.error("Bạn không có quyền truy cập đề thi này!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+        }
+
+        List<DeThiCauHoiDTO> result = deThiCauHoiRepository
+                .findByDeThiOrderByThuTuAsc(deThi)
+                .stream()
+                .map(this::chuyenDoiDeThiCauHoiDTO)
+                .toList();
+
+        return ApiResponse.success("Lấy danh sách câu hỏi thành công", result);
+    }
+
+    /**
+     * Thêm nhiều câu hỏi từ ngân hàng vào đề thi.
+     * Bỏ qua câu hỏi đã có trong đề (không báo lỗi, chỉ thêm câu mới).
+     */
+    @Transactional
+    public ApiResponse<Map<String, Object>> themCauHoiVaoDe(String deThiId,
+                                                             List<String> cauHoiIds,
+                                                             String nguoiDungId) {
+        Optional<DeThi> optDeThi = deThiRepository.findByIdAndNotDeleted(deThiId);
+        if (optDeThi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy đề thi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        DeThi deThi = optDeThi.get();
+        if (!deThi.getNguoiDung().getId().equals(nguoiDungId)) {
+            return ApiResponse.error("Bạn không có quyền chỉnh sửa đề thi này!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+        }
+
+        int thuTuHienTai = deThiCauHoiRepository.layThuTuLonNhat(deThi);
+        int daThemCount  = 0;
+        int trungCount   = 0;
+
+        for (String cauHoiId : cauHoiIds) {
+            Optional<CauHoi> optCauHoi = cauHoiRepository.findById(cauHoiId);
+            if (optCauHoi.isEmpty()) continue;
+
+            CauHoi cauHoi = optCauHoi.get();
+
+            // Bỏ qua nếu câu hỏi đã có trong đề
+            if (deThiCauHoiRepository.existsByDeThiAndCauHoi(deThi, cauHoi)) {
+                trungCount++;
+                continue;
+            }
+
+            DeThiCauHoi link = new DeThiCauHoi();
+            link.setId(UUID.randomUUID().toString());
+            link.setDeThi(deThi);
+            link.setCauHoi(cauHoi);
+            link.setThuTu(++thuTuHienTai);
+            deThiCauHoiRepository.save(link);
+            daThemCount++;
+        }
+
+        String msg = "Đã thêm " + daThemCount + " câu hỏi vào đề thi.";
+        if (trungCount > 0) msg += " (" + trungCount + " câu đã tồn tại, bỏ qua)";
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("daThemCount", daThemCount);
+        data.put("trungCount", trungCount);
+        data.put("tongCauHoi", deThiCauHoiRepository.countByDeThi(deThi));
+
+        return ApiResponse.success(msg, data);
+    }
+
+    /**
+     * Xóa một câu hỏi khỏi đề thi và tái đánh số thứ tự.
+     */
+    @Transactional
+    public ApiResponse<Void> xoaCauHoiKhoiDe(String deThiId, String cauHoiId, String nguoiDungId) {
+        Optional<DeThi> optDeThi = deThiRepository.findByIdAndNotDeleted(deThiId);
+        if (optDeThi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy đề thi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        DeThi deThi = optDeThi.get();
+        if (!deThi.getNguoiDung().getId().equals(nguoiDungId)) {
+            return ApiResponse.error("Bạn không có quyền chỉnh sửa đề thi này!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+        }
+
+        Optional<CauHoi> optCauHoi = cauHoiRepository.findById(cauHoiId);
+        if (optCauHoi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy câu hỏi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+
+        deThiCauHoiRepository.deleteByDeThiAndCauHoi(deThi, optCauHoi.get());
+
+        // Tái đánh số thứ tự để không bị lỗ khoảng
+        List<DeThiCauHoi> remaining = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi);
+        for (int i = 0; i < remaining.size(); i++) {
+            remaining.get(i).setThuTu(i + 1);
+            deThiCauHoiRepository.save(remaining.get(i));
+        }
+
+        return ApiResponse.success("Đã xóa câu hỏi khỏi đề thi!");
+    }
+
+    /**
+     * Cập nhật thứ tự câu hỏi trong đề thi.
+     * Nhận vào danh sách ID câu hỏi theo thứ tự mong muốn.
+     */
+    @Transactional
+    public ApiResponse<Void> capNhatThuTu(String deThiId, List<String> cauHoiIdsOrdered, String nguoiDungId) {
+        Optional<DeThi> optDeThi = deThiRepository.findByIdAndNotDeleted(deThiId);
+        if (optDeThi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy đề thi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        DeThi deThi = optDeThi.get();
+        if (!deThi.getNguoiDung().getId().equals(nguoiDungId)) {
+            return ApiResponse.error("Bạn không có quyền chỉnh sửa đề thi này!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+        }
+
+        List<DeThiCauHoi> allLinks = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi);
+
+        // Tạo map cauHoiId → link để tra cứu nhanh
+        Map<String, DeThiCauHoi> linkMap = new LinkedHashMap<>();
+        for (DeThiCauHoi link : allLinks) {
+            linkMap.put(link.getCauHoi().getId(), link);
+        }
+
+        // Cập nhật thứ tự theo danh sách nhận vào
+        for (int i = 0; i < cauHoiIdsOrdered.size(); i++) {
+            DeThiCauHoi link = linkMap.get(cauHoiIdsOrdered.get(i));
+            if (link != null) {
+                link.setThuTu(i + 1);
+                deThiCauHoiRepository.save(link);
+            }
+        }
+
+        return ApiResponse.success("Đã cập nhật thứ tự câu hỏi!");
+    }
+
+    /**
+     * Lấy danh sách câu hỏi từ ngân hàng (của giáo viên) chưa có trong đề thi,
+     * có thể lọc theo môn học, chủ đề, độ khó, từ khóa.
+     */
+    public ApiResponse<List<CauHoiListItemDTO>> layNganHangChoThem(
+            String deThiId, String nguoiDungId,
+            String monHocId, String chuDeId, String doKho, String keyword) {
+
+        Optional<DeThi> optDeThi = deThiRepository.findByIdAndNotDeleted(deThiId);
+        if (optDeThi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy đề thi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        DeThi deThi = optDeThi.get();
+        if (!deThi.getNguoiDung().getId().equals(nguoiDungId)) {
+            return ApiResponse.error("Bạn không có quyền truy cập!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+        }
+
+        Optional<NguoiDung> optGV = nguoiDungRepository.findById(nguoiDungId);
+        if (optGV.isEmpty()) return ApiResponse.error("Không tìm thấy người dùng!", 1);
+
+        // ID các câu hỏi đã có trong đề (để loại trừ)
+        java.util.Set<String> daTrongDe = deThiCauHoiRepository
+                .findByDeThiOrderByThuTuAsc(deThi)
+                .stream()
+                .map(dc -> dc.getCauHoi().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        // Chuẩn hóa filter
+        String mhFilter  = (monHocId != null && !monHocId.isBlank())  ? monHocId  : null;
+        String cdFilter  = (chuDeId  != null && !chuDeId.isBlank())   ? chuDeId   : null;
+        String dkFilter  = (doKho    != null && !doKho.isBlank())     ? doKho     : null;
+        String kwFilter  = (keyword  != null && !keyword.isBlank())   ? keyword   : null;
+
+        List<CauHoiListItemDTO> result = cauHoiRepository
+                .locCauHoi(optGV.get(), mhFilter, cdFilter, dkFilter, kwFilter)
+                .stream()
+                .filter(c -> !daTrongDe.contains(c.getId()))
+                .map(c -> {
+                    CauHoiListItemDTO dto = new CauHoiListItemDTO();
+                    dto.setId(c.getId());
+                    dto.setNoiDung(c.getNoiDung());
+                    dto.setLoaiCauHoi(c.getLoaiCauHoi());
+                    dto.setDoKho(c.getDoKho());
+                    dto.setDapAnDung(c.getDapAnDung());
+                    dto.setLuaChonA(c.getLuaChonA());
+                    dto.setLuaChonB(c.getLuaChonB());
+                    dto.setLuaChonC(c.getLuaChonC());
+                    dto.setLuaChonD(c.getLuaChonD());
+                    if (c.getChuDe() != null) {
+                        dto.setChuDeId(c.getChuDe().getId());
+                        dto.setTenChuDe(c.getChuDe().getTen());
+                        if (c.getChuDe().getMonHoc() != null) {
+                            dto.setMonHocId(c.getChuDe().getMonHoc().getId());
+                            dto.setTenMonHoc(c.getChuDe().getMonHoc().getTen());
+                        }
+                    }
+                    return dto;
+                })
+                .toList();
+
+        return ApiResponse.success("Lấy ngân hàng câu hỏi thành công", result);
+    }
+
+    // ── Helper: chuyển DeThiCauHoi → DTO ──────────────────────────
+    private DeThiCauHoiDTO chuyenDoiDeThiCauHoiDTO(DeThiCauHoi link) {
+        DeThiCauHoiDTO dto = new DeThiCauHoiDTO();
+        dto.setLinkId(link.getId());
+        dto.setThuTu(link.getThuTu() != null ? link.getThuTu() : 0);
+
+        CauHoi c = link.getCauHoi();
+        dto.setCauHoiId(c.getId());
+        dto.setNoiDung(c.getNoiDung());
+        dto.setLoaiCauHoi(c.getLoaiCauHoi());
+        dto.setDoKho(c.getDoKho());
+        dto.setDapAnDung(c.getDapAnDung());
+        dto.setLuaChonA(c.getLuaChonA());
+        dto.setLuaChonB(c.getLuaChonB());
+        dto.setLuaChonC(c.getLuaChonC());
+        dto.setLuaChonD(c.getLuaChonD());
+
+        if (c.getChuDe() != null) {
+            dto.setTenChuDe(c.getChuDe().getTen());
+            if (c.getChuDe().getMonHoc() != null) {
+                dto.setTenMonHoc(c.getChuDe().getMonHoc().getTen());
+            }
+        }
+        return dto;
     }
 }
