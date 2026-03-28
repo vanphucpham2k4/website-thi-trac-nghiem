@@ -154,7 +154,7 @@ function updateDashboardUI(data) {
     const diemTB = data.diemTrungBinh || 0;
     document.getElementById('statDiemTrungBinh').textContent = parseFloat(diemTB).toFixed(2);
 
-    // Phòng thi — tính năng đang phát triển, không lấy từ API xếp hạng
+    // Lớp/Phòng Thi — tính năng đang phát triển, không lấy từ API xếp hạng
     const elPhong = document.getElementById('statPhongThi');
     if (elPhong) elPhong.textContent = '—';
 }

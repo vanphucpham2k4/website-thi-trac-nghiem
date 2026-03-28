@@ -1,8 +1,7 @@
 /**
- * Sinh viên — Lớp/Phòng Thi: danh sách lớp đã được thêm vào.
+ * Sinh viên — chi tiết lớp: tiêu đề + placeholder danh sách đề thi.
  */
 const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
-const API_LOP = '/api/sinh-vien/lop-phong-thi';
 
 function isTokenExpired() {
     const expiresAt = storage.getItem('tokenExpiresAt');
@@ -27,12 +26,12 @@ function escHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
-function showToast(message, type = 'error') {
+function showToast(message) {
     const c = document.getElementById('toastContainer');
     if (!c) return;
     const el = document.createElement('div');
-    el.className = type === 'error' ? 'toast toast-error' : 'toast toast-info';
-    el.innerHTML = `<i class="fas fa-${type === 'error' ? 'times-circle' : 'info-circle'}"></i> ${escHtml(message)}`;
+    el.className = 'toast toast-error';
+    el.innerHTML = `<i class="fas fa-times-circle"></i> ${escHtml(message)}`;
     c.appendChild(el);
     setTimeout(() => {
         el.style.opacity = '0';
@@ -70,59 +69,38 @@ function setupLogout() {
     });
 }
 
-function renderLopGrid(list) {
-    const loading = document.getElementById('lopGridLoading');
-    const grid = document.getElementById('lopGrid');
-    if (!grid) return;
-    if (loading) loading.style.display = 'none';
-    grid.style.display = 'grid';
-    if (!list.length) {
-        grid.innerHTML =
-            '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-inbox"></i><br>Bạn chưa được thêm vào lớp nào. Khi giáo viên tạo lớp và chọn bạn, lớp sẽ hiện tại đây.</div>';
-        return;
-    }
-    grid.innerHTML = list
-        .map((row) => {
-            const id = escHtml(row.lopId);
-            const ten = escHtml(row.tenLop || 'Lớp');
-            const chu = escHtml(row.tenChuTri || '—');
-            return `<button type="button" class="lop-card" data-lop-id="${id}">
-                <p class="lop-card-title"><i class="fas fa-chalkboard"></i>${ten}</p>
-                <p class="lop-card-meta">Chủ trì (giáo viên): <strong>${chu}</strong></p>
-            </button>`;
-        })
-        .join('');
-    grid.querySelectorAll('.lop-card').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const lid = btn.getAttribute('data-lop-id');
-            if (lid) window.location.href = `/dashboard/sinh-vien/phong-thi/${encodeURIComponent(lid)}`;
-        });
+async function taiChiTietLop(lopId) {
+    const res = await fetch(`/api/sinh-vien/lop-phong-thi/${encodeURIComponent(lopId)}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
     });
-}
-
-async function taiDanhSachLop() {
-    const res = await fetch(API_LOP, { headers: { Authorization: `Bearer ${getToken()}` } });
     const json = await res.json();
-    if (res.status === 401 || !json.success) {
-        if (res.status === 401) {
-            storage.removeItem('nguoiDung');
-            storage.removeItem('vaiTro');
-            storage.removeItem('token');
-            storage.removeItem('tokenExpiresAt');
-            window.location.href = '/login?expired=1';
-            return;
-        }
-        showToast(json.message || 'Không tải được danh sách lớp.', 'error');
-        renderLopGrid([]);
+    if (res.status === 401) {
+        storage.removeItem('nguoiDung');
+        storage.removeItem('vaiTro');
+        storage.removeItem('token');
+        storage.removeItem('tokenExpiresAt');
+        window.location.href = '/login?expired=1';
         return;
     }
-    renderLopGrid(json.data || []);
+    if (!json.success || !json.data) {
+        showToast(json.message || 'Không tải được thông tin lớp.');
+        document.getElementById('tieuDeLop').textContent = 'Lỗi';
+        return;
+    }
+    const d = json.data;
+    const ten = d.tenLop || 'Lớp';
+    const chu = d.tenChuTri || '—';
+    document.getElementById('tieuDeLop').textContent = ten;
+    document.getElementById('breadcrumbTenLop').textContent = ten;
+    document.getElementById('dongChuTri').textContent = `Chủ trì (giáo viên): ${chu}`;
+    document.title = `${ten} - ThiTracNghiem`;
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     const vaiTro = storage.getItem('vaiTro');
     const token = storage.getItem('token');
     const nguoiDung = storage.getItem('nguoiDung');
+    const lopId = document.getElementById('lopIdHidden')?.value?.trim();
 
     if (!nguoiDung || vaiTro !== 'SINH_VIEN' || !token) {
         window.location.href = '/login';
@@ -134,6 +112,10 @@ document.addEventListener('DOMContentLoaded', function () {
         storage.removeItem('token');
         storage.removeItem('tokenExpiresAt');
         window.location.href = '/login?expired=1';
+        return;
+    }
+    if (!lopId) {
+        window.location.href = '/dashboard/sinh-vien/phong-thi';
         return;
     }
 
@@ -149,8 +131,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setupSidebar();
     setupLogout();
-
-    if (document.getElementById('lopGrid')) {
-        taiDanhSachLop();
-    }
+    taiChiTietLop(lopId);
 });

@@ -56,12 +56,22 @@ public class DashboardController {
     }
 
     /**
-     * Trang Phòng thi (sinh viên) — placeholder.
+     * Trang Lớp/Phòng thi (sinh viên).
      * URL: GET /dashboard/sinh-vien/phong-thi
      */
     @GetMapping("/sinh-vien/phong-thi")
     public String trangPhongThiSinhVien() {
         return "sinh-vien-phong-thi";
+    }
+
+    /**
+     * Trang danh sách đề thi trong một lớp (sinh viên) — nội dung đề thi bổ sung sau.
+     * URL: GET /dashboard/sinh-vien/phong-thi/{lopId}
+     */
+    @GetMapping("/sinh-vien/phong-thi/{lopId}")
+    public String trangPhongThiSinhVienChiTiet(@PathVariable String lopId, Model model) {
+        model.addAttribute("lopId", lopId);
+        return "sinh-vien-phong-thi-chi-tiet";
     }
 
     /**
@@ -142,6 +152,15 @@ public class DashboardController {
     @GetMapping("/giao-vien/quan-ly-sinh-vien")
     public String trangQuanLySinhVienGiaoVien() {
         return "giao-vien-quan-ly-sinh-vien";
+    }
+
+    /**
+     * Trang Quản lý lớp học (giáo viên).
+     * URL: GET /dashboard/giao-vien/quan-ly-lop-hoc
+     */
+    @GetMapping("/giao-vien/quan-ly-lop-hoc")
+    public String trangQuanLyLopHocGiaoVien() {
+        return "giao-vien-quan-ly-lop-hoc";
     }
 
     // ========================================
