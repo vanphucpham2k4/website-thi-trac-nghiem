@@ -109,9 +109,9 @@ public class AuthController {
      * API ĐĂNG NHẬP - Xử lý form đăng nhập qua AJAX
      * URL: POST /api/login
      *
+     * Chỉ dành cho SINH_VIEN và GIAO_VIEN. ADMIN phải đăng nhập qua /login/admin (API /api/login/admin)
+     *
      * @param dto Dữ liệu đăng nhập (tài khoản + mật khẩu)
-     *           - taiKhoan: email HOẶC số điện thoại
-     *           - matKhau: mật khẩu đăng nhập
      *
      * @return ApiResponse chứa:
      *         - success: true/false
@@ -122,6 +122,7 @@ public class AuthController {
      * Mã lỗi:
      * 1 = Tài khoản không tồn tại
      * 2 = Sai mật khẩu
+     * 6 = Vai trò không hợp lệ (ADMIN bị chặn)
      * 7 = Lỗi hệ thống
      */
     @PostMapping("/api/login")
@@ -130,6 +131,34 @@ public class AuthController {
             @Valid @RequestBody DangNhapDTO dto
     ) {
         ApiResponse<DangNhapResponseDTO> response = authService.dangNhap(dto);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(401).body(response);
+        }
+    }
+
+    /**
+     * API ĐĂNG NHẬP ADMIN - Xử lý form đăng nhập Admin qua AJAX
+     * URL: POST /api/login/admin
+     *
+     * Chỉ dành cho vai trò ADMIN. Nếu tài khoản không phải ADMIN sẽ bị từ chối.
+     *
+     * @param dto Dữ liệu đăng nhập (tài khoản + mật khẩu)
+     *
+     * @return ApiResponse chứa:
+     *         - success: true/false
+     *         - message: thông báo kết quả
+     *         - data: thông tin người dùng (nếu thành công)
+     *         - errorCode: mã lỗi chi tiết (nếu thất bại)
+     */
+    @PostMapping("/api/login/admin")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<DangNhapResponseDTO>> dangNhapAdmin(
+            @Valid @RequestBody DangNhapDTO dto
+    ) {
+        ApiResponse<DangNhapResponseDTO> response = authService.dangNhapAdmin(dto);
 
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);

@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Gọi API đăng nhập
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch('/api/login/admin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -102,8 +102,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const result = await response.json();
 
-            if (result.success) {
-                // Lưu JWT token + user info — dùng localStorage nếu ghiNho, sessionStorage nếu không
+                if (result.success) {
+                // Lưu JWT token + user info
                 const storage = ghiNho ? localStorage : sessionStorage;
                 if (result.data) {
                     storage.setItem('token', result.data.token || '');
@@ -112,22 +112,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     storage.setItem('vaiTro', result.data.nguoiDung?.vaiTro || '');
                 }
 
-                // Kiểm tra vai trò - chỉ cho phép ADMIN
-                if (result.data.nguoiDung?.vaiTro === 'ADMIN') {
-                    showMessage('success', 'Đăng nhập thành công! Đang chuyển hướng...');
-                    setTimeout(() => {
-                        window.location.href = '/admin';
-                    }, 800);
-                } else {
-                    // Xóa session nếu không phải admin
-                    storage.removeItem('nguoiDung');
-                    storage.removeItem('vaiTro');
-                    storage.removeItem('token');
-                    storage.removeItem('tokenExpiresAt');
-                    showMessage('error', 'Tài khoản này không có quyền truy cập trang Admin.');
-                    refreshCaptchaOnError();
-                    setLoading(false);
-                }
+                showMessage('success', 'Đăng nhập thành công! Đang chuyển hướng...');
+                setTimeout(() => {
+                    window.location.href = '/admin';
+                }, 800);
             } else {
                 // Hiện lỗi từ server
                 showMessage('error', result.message || 'Đăng nhập thất bại');

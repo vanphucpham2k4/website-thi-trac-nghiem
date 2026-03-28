@@ -211,9 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(() => {
                         // Chuyển hướng theo vai trò
                         const vaiTro = result.data?.nguoiDung?.vaiTro;
-                        if (vaiTro === 'ADMIN') {
-                            window.location.href = '/admin';
-                        } else if (vaiTro === 'GIAO_VIEN') {
+                        if (vaiTro === 'GIAO_VIEN') {
                             window.location.href = '/dashboard/giao-vien';
                         } else if (vaiTro === 'SINH_VIEN') {
                             window.location.href = '/dashboard/sinh-vien';
@@ -280,6 +278,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 captchaAnswerInput.value = ''; // Xóa đáp án đã nhập
                 captchaAnswerInput.focus();
                 showFieldError(captchaAnswerInput, errorMessage);
+                break;
+
+            case 6:
+                // ADMIN bị chặn - dùng message từ server
+                errorMessage = result.message || 'Tài khoản Admin không được đăng nhập tại đây!';
                 break;
 
             case 7:

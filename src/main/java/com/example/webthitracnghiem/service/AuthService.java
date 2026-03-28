@@ -159,16 +159,12 @@ public class AuthService {
     }
 
     // ========================================
-    // 2. XỬ LÝ ĐĂNG NHẬP
+    // 2. XỬ LÝ ĐĂNG NHẬP NGƯỜI DÙNG (Sinh Viên / Giáo Viên)
     // ========================================
 
     /**
-     * Đăng nhập vào hệ thống
-     * Quy trình:
-     * 1. Kiểm tra CAPTCHA (xác nhận là người thật)
-     * 2. Tìm người dùng theo email hoặc số điện thoại
-     * 3. Kiểm tra mật khẩu có khớp không
-     * 4. Trả về thông tin người dùng nếu thành công
+     * Đăng nhập vào hệ thống - Chỉ dành cho SINH_VIEN và GIAO_VIEN
+     * ADMIN phải đăng nhập qua /api/login/admin
      *
      * @param dto Dữ liệu đăng nhập từ frontend (tài khoản + mật khẩu + CAPTCHA)
      * @return ApiResponse chứa kết quả đăng nhập
@@ -176,36 +172,41 @@ public class AuthService {
     public ApiResponse<DangNhapResponseDTO> dangNhap(DangNhapDTO dto) {
         try {
             // ===== BƯỚC 1: Kiểm tra CAPTCHA =====
-            // Xác thực người dùng là con người, không phải bot
             if (!captchaService.validateCaptcha(dto.getCaptchaId(), dto.getCaptchaAnswer())) {
                 return ApiResponse.error("Mã CAPTCHA không đúng! Vui lòng nhập lại.", ERR_CAPTCHA_SAI);
             }
 
             // ===== BƯỚC 2: Tìm người dùng theo email hoặc số điện thoại =====
-            // Đăng nhập = email HOẶC số điện thoại
             NguoiDung nguoiDung = nguoiDungRepository.findByEmail(dto.getTaiKhoan())
                     .orElseGet(() -> nguoiDungRepository.findBySoDienThoai(dto.getTaiKhoan())
                             .orElse(null));
 
             // ===== BƯỚC 3: Kiểm tra tài khoản có tồn tại không =====
             if (nguoiDung == null) {
-                // Tài khoản (email/sdt) không tồn tại trong hệ thống
                 return ApiResponse.error("Tài khoản không tồn tại! Vui lòng kiểm tra lại email hoặc số điện thoại.", ERR_TAI_KHOAN_KHONG_TON_TAI);
             }
 
-            // ===== BƯỚC 4: Kiểm tra mật khẩu (BCrypt so khớp plain vs hash) =====
+            // ===== BƯỚC 4: Kiểm tra mật khẩu =====
             if (!passwordEncoder.matches(dto.getMatKhau(), nguoiDung.getMatKhau())) {
-                // Mật khẩu không đúng
                 return ApiResponse.error("Sai mật khẩu! Vui lòng nhập lại.", ERR_SAI_MAT_KHAU);
             }
 
-            // ===== BƯỚC 5: Lấy thông tin vai trò của người dùng =====
-            String vaiTro = layVaiTroCuaNguoiDung(nguoiDung.getId());
+            // ===== BƯỚC 5: CHẶN ADMIN (mọi vai trò trong DB, không chỉ bản ghi đầu tiên) =====
+            // findByNguoiDungId không đảm bảo thứ tự; nếu ADMIN nằm sau SINH_VIEN thì chỉ so "vai trò đầu" sẽ lọt cổng /login — sai.
+            if (nguoiDungCoVaiTro(nguoiDung.getId(), ROLE_ADMIN)) {
+                return ApiResponse.error("Tài khoản Admin không được đăng nhập tại đây. Vui lòng sử dụng trang đăng nhập Admin.", ERR_VAI_TRO_KHONG_HOP_LE);
+            }
 
-            // ===== BƯỚC 6: Tạo JWT token =====
+            // ===== BƯỚC 6: Vai trò cho phiên đăng nhập: chỉ SINH_VIEN hoặc GIAO_VIEN =====
+            String vaiTro = layVaiTroCongSinhVienGiaoVien(nguoiDung.getId());
+            if (vaiTro == null) {
+                return ApiResponse.error("Tài khoản không có vai trò Sinh viên hoặc Giáo viên.", ERR_VAI_TRO_KHONG_HOP_LE);
+            }
+
+            // ===== BƯỚC 7: Tạo JWT token =====
             String token = jwtService.taoToken(nguoiDung.getId(), nguoiDung.getEmail(), vaiTro);
 
-            // ===== BƯỚC 7: Trả về kết quả thành công (kèm token) =====
+            // ===== BƯỚC 8: Trả về kết quả thành công =====
             NguoiDungDTO nguoiDungDTO = chuyenDoiNguoiDungDTO(nguoiDung, vaiTro);
             DangNhapResponseDTO responseDTO = new DangNhapResponseDTO(
                     nguoiDungDTO, token, jwtService.layThoiDiemHetHan(token)
@@ -213,7 +214,61 @@ public class AuthService {
             return ApiResponse.success("Đăng nhập thành công!", responseDTO);
 
         } catch (Exception e) {
-            // Log lỗi để debug
+            e.printStackTrace();
+            return ApiResponse.error("Đã xảy ra lỗi trong quá trình đăng nhập: " + e.getMessage(), ERR_HE_THONG);
+        }
+    }
+
+    // ========================================
+    // 3. XỬ LÝ ĐĂNG NHẬP ADMIN
+    // ========================================
+
+    /**
+     * Đăng nhập Admin - Chỉ dành cho vai trò ADMIN
+     *
+     * @param dto Dữ liệu đăng nhập từ frontend
+     * @return ApiResponse chứa kết quả đăng nhập
+     */
+    public ApiResponse<DangNhapResponseDTO> dangNhapAdmin(DangNhapDTO dto) {
+        try {
+            // ===== BƯỚC 1: Kiểm tra CAPTCHA =====
+            if (!captchaService.validateCaptcha(dto.getCaptchaId(), dto.getCaptchaAnswer())) {
+                return ApiResponse.error("Mã CAPTCHA không đúng! Vui lòng nhập lại.", ERR_CAPTCHA_SAI);
+            }
+
+            // ===== BƯỚC 2: Tìm người dùng theo email hoặc số điện thoại =====
+            NguoiDung nguoiDung = nguoiDungRepository.findByEmail(dto.getTaiKhoan())
+                    .orElseGet(() -> nguoiDungRepository.findBySoDienThoai(dto.getTaiKhoan())
+                            .orElse(null));
+
+            // ===== BƯỚC 3: Kiểm tra tài khoản có tồn tại không =====
+            if (nguoiDung == null) {
+                return ApiResponse.error("Tài khoản không tồn tại! Vui lòng kiểm tra lại.", ERR_TAI_KHOAN_KHONG_TON_TAI);
+            }
+
+            // ===== BƯỚC 4: Kiểm tra mật khẩu =====
+            if (!passwordEncoder.matches(dto.getMatKhau(), nguoiDung.getMatKhau())) {
+                return ApiResponse.error("Sai mật khẩu! Vui lòng nhập lại.", ERR_SAI_MAT_KHAU);
+            }
+
+            // ===== BƯỚC 5: CHỈ cho phép nếu có vai trò ADMIN (bất kỳ bản ghi nào) =====
+            if (!nguoiDungCoVaiTro(nguoiDung.getId(), ROLE_ADMIN)) {
+                return ApiResponse.error("Tài khoản này không có quyền truy cập trang Admin.", ERR_VAI_TRO_KHONG_HOP_LE);
+            }
+
+            String vaiTro = ROLE_ADMIN;
+
+            // ===== BƯỚC 6: Tạo JWT token =====
+            String token = jwtService.taoToken(nguoiDung.getId(), nguoiDung.getEmail(), vaiTro);
+
+            // ===== BƯỚC 7: Trả về kết quả thành công =====
+            NguoiDungDTO nguoiDungDTO = chuyenDoiNguoiDungDTO(nguoiDung, vaiTro);
+            DangNhapResponseDTO responseDTO = new DangNhapResponseDTO(
+                    nguoiDungDTO, token, jwtService.layThoiDiemHetHan(token)
+            );
+            return ApiResponse.success("Đăng nhập Admin thành công!", responseDTO);
+
+        } catch (Exception e) {
             e.printStackTrace();
             return ApiResponse.error("Đã xảy ra lỗi trong quá trình đăng nhập: " + e.getMessage(), ERR_HE_THONG);
         }
@@ -254,16 +309,21 @@ public class AuthService {
     }
 
     /**
-     * Lấy vai trò đầu tiên của người dùng từ bảng NGUOI_DUNG_VAI_TRO
-     *
-     * @param nguoiDungId ID của người dùng cần lấy vai trò
-     * @return Tên vai trò hoặc null nếu không có
+     * Kiểm tra người dùng có ít nhất một bản ghi vai trò trùng {@code tenVaiTro}.
      */
-    private String layVaiTroCuaNguoiDung(String nguoiDungId) {
-        return nguoiDungVaiTroRepository.findByNguoiDungId(nguoiDungId)
-                .stream()
+    private boolean nguoiDungCoVaiTro(String nguoiDungId, String tenVaiTro) {
+        return nguoiDungVaiTroRepository.findByNguoiDungId(nguoiDungId).stream()
+                .anyMatch(ndvt -> ndvt.getVaiTro() != null && tenVaiTro.equals(ndvt.getVaiTro().getTenVaiTro()));
+    }
+
+    /**
+     * Vai trò dùng cho cổng /login: lấy một vai trò SINH_VIEN hoặc GIAO_VIEN (nếu có nhiều, theo thứ tự trong danh sách trả về từ DB).
+     */
+    private String layVaiTroCongSinhVienGiaoVien(String nguoiDungId) {
+        return nguoiDungVaiTroRepository.findByNguoiDungId(nguoiDungId).stream()
+                .map(ndvt -> ndvt.getVaiTro() != null ? ndvt.getVaiTro().getTenVaiTro() : null)
+                .filter(r -> ROLE_SINH_VIEN.equals(r) || ROLE_GIAO_VIEN.equals(r))
                 .findFirst()
-                .map(ndvt -> ndvt.getVaiTro().getTenVaiTro())
                 .orElse(null);
     }
 
