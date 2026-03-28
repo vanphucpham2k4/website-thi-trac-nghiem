@@ -390,6 +390,56 @@
             </div>
         </div>
 
+        <!-- Quản lý môn học -->
+        <div class="dashboard-content admin-user-page" id="pageMonHoc" style="display: none;">
+            <div class="dashboard-card">
+                <div class="card-header admin-mon-hoc-header">
+                    <h3><i class="fas fa-book"></i> Danh sách môn học</h3>
+                    <div class="admin-mon-hoc-actions">
+                        <button type="button" class="btn btn-sm btn-outline" id="btnReloadMonHoc">
+                            <i class="fas fa-sync-alt"></i> Tải lại
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnAddMonHoc">
+                            <i class="fas fa-plus"></i> Thêm môn học
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="adminMonHocMsg" class="admin-inline-msg" hidden></div>
+                    <div class="table-wrap-admin">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tên môn học</th>
+                                    <th>Mô tả</th>
+                                    <th>Chủ đề</th>
+                                    <th style="width: 200px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminMonHocTableBody">
+                                <tr class="loading-row">
+                                    <td colspan="4"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trang tạm: chức năng đang phát triển (đề thi, câu hỏi, ...) -->
+        <div class="dashboard-content admin-placeholder-page" id="pagePlaceholder" style="display: none;">
+            <div class="dashboard-card admin-placeholder-card">
+                <div class="card-body admin-placeholder-body">
+                    <div class="admin-placeholder-icon" aria-hidden="true">
+                        <i class="fas fa-hard-hat"></i>
+                    </div>
+                    <h2 class="admin-placeholder-title">Trang này đang được phát triển</h2>
+                    <p class="admin-placeholder-hint">Vui lòng quay lại sau hoặc dùng các mục đã có sẵn trong menu.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal sửa người dùng -->
         <div class="admin-modal-overlay" id="modalEditUser" style="display: none;">
             <div class="admin-modal">
@@ -428,6 +478,36 @@
                 <div class="admin-modal-footer">
                     <button type="button" class="btn btn-sm" id="btnCancelEdit">Hủy</button>
                     <button type="button" class="btn btn-sm btn-primary" id="btnSaveEdit">Lưu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal thêm / sửa môn học -->
+        <div class="admin-modal-overlay" id="modalMonHoc" style="display: none;">
+            <div class="admin-modal admin-modal-wide">
+                <div class="admin-modal-header">
+                    <h3 id="modalMonHocTitle">Thêm môn học</h3>
+                    <button type="button" class="admin-modal-close" id="modalMonHocClose" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body">
+                    <input type="hidden" id="monHocId">
+                    <div class="form-field">
+                        <label for="monHocTen">Tên môn học <span class="req-star">*</span></label>
+                        <input type="text" id="monHocTen" maxlength="255" autocomplete="off" placeholder="Ví dụ: Toán Học">
+                    </div>
+                    <div class="form-field">
+                        <label for="monHocChuDeTen">Tên Chủ đề</label>
+                        <p class="form-hint" style="margin:0 0 6px 0;">Mỗi dòng một chủ đề (thứ tự dòng khớp chủ đề đang có trong hệ thống). Sửa chữ trên dòng để đổi tên; thêm dòng ở cuối để tạo mới; xóa dòng ở cuối để xóa chủ đề — chỉ được xóa nếu chủ đề đó chưa có câu hỏi.</p>
+                        <textarea id="monHocChuDeTen" class="admin-mon-hoc-chu-de-textarea" rows="5" placeholder="Ví dụ:&#10;Chung&#10;Ôn tập giữa kỳ"></textarea>
+                    </div>
+                    <div class="form-field">
+                        <label for="monHocMoTa">Mô tả</label>
+                        <textarea id="monHocMoTa" rows="4" placeholder="Mô tả ngắn về môn học (tùy chọn)"></textarea>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn btn-sm" id="btnCancelMonHoc">Hủy</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="btnSaveMonHoc">Lưu</button>
                 </div>
             </div>
         </div>

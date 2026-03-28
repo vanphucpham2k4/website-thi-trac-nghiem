@@ -79,6 +79,124 @@
     background: linear-gradient(135deg, #ed8936, #dd6b20) !important;
 }
 
+/* Trang placeholder (đang phát triển) */
+.admin-placeholder-page {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 50vh;
+}
+
+.admin-placeholder-card {
+    max-width: 520px;
+    width: 100%;
+    margin: 2rem auto 0;
+    text-align: center;
+}
+
+.admin-placeholder-body {
+    padding: 3rem 2rem !important;
+}
+
+.admin-placeholder-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 1.25rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(237, 137, 54, 0.2), rgba(221, 107, 32, 0.12));
+    border: 1px solid rgba(237, 137, 54, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-placeholder-icon i {
+    font-size: 2rem;
+    color: #ed8936;
+}
+
+.admin-placeholder-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 0.75rem;
+}
+
+.admin-placeholder-hint {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #718096;
+    line-height: 1.5;
+}
+
+.admin-mon-hoc-header {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.admin-mon-hoc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-modal-wide {
+    max-width: 520px;
+}
+
+.admin-mon-hoc-chu-de-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 120px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.admin-modal-body textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.admin-modal-body textarea:focus {
+    outline: none;
+    border-color: #ed8936;
+    box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.15);
+}
+
+.req-star {
+    color: #e53e3e;
+}
+
+.admin-mon-hoc-desc {
+    max-width: 420px;
+    color: #4a5568;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.admin-mon-hoc-chu-de {
+    display: block;
+    max-width: 360px;
+    color: #2d3748;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.admin-mon-hoc-chu-de-sep {
+    color: #a0aec0;
+    font-weight: 400;
+}
+
 /* Header icon button */
 .header-icon-btn {
     position: relative;

@@ -101,7 +101,27 @@ public class DataInitializer implements CommandLineRunner {
             log("Dữ liệu mẫu đã tồn tại — bỏ qua seed.");
         }
 
+        damBaoMoiMonCoChuDeMacDinh();
+
         log("Khởi tạo dữ liệu hoàn tất!");
+    }
+
+    /**
+     * Môn học nào chưa có chủ đề (vd. môn do Admin thêm sau) thì gắn một chủ đề «Chung»
+     * để giáo viên có thể gán câu hỏi / import; Admin có thể đổi tên hoặc thêm chủ đề trong Ngân hàng câu hỏi.
+     */
+    private void damBaoMoiMonCoChuDeMacDinh() {
+        for (MonHoc mh : monHocRepository.findAll()) {
+            if (chuDeRepository.countByMonHoc(mh) > 0) {
+                continue;
+            }
+            ChuDe c = new ChuDe();
+            c.setId(uuid());
+            c.setTen("Chung");
+            c.setMonHoc(mh);
+            chuDeRepository.save(c);
+            log("Đã thêm chủ đề mặc định «Chung» cho môn: " + mh.getTen());
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -448,6 +468,7 @@ public class DataInitializer implements CommandLineRunner {
         dt.setThoiGianMo(thoiGianMo);
         dt.setThoiGianDong(thoiGianDong);
         dt.setThoiGianTao(LocalDateTime.now());
+        dt.setThangDiemToiDa(new java.math.BigDecimal("10"));
         dt = deThiRepository.save(dt);
 
         // Liên kết câu hỏi vào đề thi

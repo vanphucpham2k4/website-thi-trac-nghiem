@@ -282,6 +282,45 @@ public class DeThiApiController {
     }
 
     // ================================================================
+    // GET /api/giao-vien/de-thi/{id}/cau-hoi/van-ban-tho — Văn bản thô (trang split-view)
+    // ================================================================
+
+    @GetMapping("/{id}/cau-hoi/van-ban-tho")
+    public ResponseEntity<ApiResponse<DeThiVanBanCauHoiDTO>> layVanBanThoCauHoi(
+            @PathVariable("id") String deThiId,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoi401();
+
+        ApiResponse<DeThiVanBanCauHoiDTO> res = deThiService.layVanBanThoCauHoiTrongDe(deThiId, userId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // PUT /api/giao-vien/de-thi/{id}/cau-hoi/van-ban-tho — Lưu văn bản thô
+    // ================================================================
+
+    @PutMapping("/{id}/cau-hoi/van-ban-tho")
+    public ResponseEntity<ApiResponse<Void>> luuVanBanThoCauHoi(
+            @PathVariable("id") String deThiId,
+            @RequestBody LuuVanBanCauHoiRequestDTO body,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoiVoid401();
+
+        ApiResponse<Void> res = deThiService.luuVanBanThoCauHoiTrongDe(deThiId, userId, body);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
     // POST /api/giao-vien/de-thi/import — Import từ file PDF/DOCX
     // ================================================================
 

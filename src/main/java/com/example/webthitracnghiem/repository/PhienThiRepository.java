@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository - Truy xuất dữ liệu bảng PHIEN_THI (Phiên Thi)
@@ -62,4 +63,18 @@ public interface PhienThiRepository extends JpaRepository<PhienThi, String> {
     boolean existsByDeThi(DeThi deThi);
 
     List<PhienThi> findByDeThiId(String deThiId);
+
+    /**
+     * Đếm số phiên đã nộp (thoiGianNop != null) của một sinh viên với một đề thi.
+     * Chỉ phiên đã nộp mới tính vào lượt thi.
+     */
+    @Query("SELECT COUNT(p) FROM PhienThi p WHERE p.nguoiDung = :nguoiDung AND p.deThi = :deThi AND p.thoiGianNop IS NOT NULL")
+    long demSoLanDaNop(@Param("nguoiDung") NguoiDung nguoiDung, @Param("deThi") DeThi deThi);
+
+    /**
+     * Tìm phiên đang dở (đã bắt đầu làm nhưng chưa nộp) của sinh viên + đề thi.
+     * Điều kiện: thoiGianBatDau != null AND thoiGianNop == null.
+     */
+    @Query("SELECT p FROM PhienThi p WHERE p.nguoiDung = :nguoiDung AND p.deThi = :deThi AND p.thoiGianBatDau IS NOT NULL AND p.thoiGianNop IS NULL")
+    Optional<PhienThi> timPhienDangDo(@Param("nguoiDung") NguoiDung nguoiDung, @Param("deThi") DeThi deThi);
 }

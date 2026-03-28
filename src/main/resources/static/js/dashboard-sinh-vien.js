@@ -154,9 +154,9 @@ function updateDashboardUI(data) {
     const diemTB = data.diemTrungBinh || 0;
     document.getElementById('statDiemTrungBinh').textContent = parseFloat(diemTB).toFixed(2);
 
-    // Xếp hạng
-    const xepHang = data.xepHang;
-    document.getElementById('statXepHang').textContent = xepHang ? `#${xepHang}` : '-';
+    // Phòng thi — tính năng đang phát triển, không lấy từ API xếp hạng
+    const elPhong = document.getElementById('statPhongThi');
+    if (elPhong) elPhong.textContent = '—';
 }
 
 // ============================================
@@ -355,7 +355,8 @@ function loadMockData() {
     document.getElementById('statTongSoLanThi').textContent = '15';
     document.getElementById('statBaiThiHoanThanh').textContent = '12';
     document.getElementById('statDiemTrungBinh').textContent = '7.85';
-    document.getElementById('statXepHang').textContent = '#3';
+    const elPhong = document.getElementById('statPhongThi');
+    if (elPhong) elPhong.textContent = '—';
 
     // Mock dữ liệu điểm theo môn
     const mockDiemTheoMon = [

@@ -39,6 +39,8 @@ public interface DeThiRepository extends JpaRepository<DeThi, String> {
      */
     List<DeThi> findByMonHoc(MonHoc monHoc);
 
+    long countByMonHoc(MonHoc monHoc);
+
     Optional<DeThi> findByIdAndNguoiDung(String id, NguoiDung nguoiDung);
 
     /**

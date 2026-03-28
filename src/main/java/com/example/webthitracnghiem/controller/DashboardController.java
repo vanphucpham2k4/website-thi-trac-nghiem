@@ -6,6 +6,7 @@ import com.example.webthitracnghiem.dto.SinhVienDashboardDTO;
 import com.example.webthitracnghiem.service.DashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -55,6 +56,15 @@ public class DashboardController {
     }
 
     /**
+     * Trang Phòng thi (sinh viên) — placeholder.
+     * URL: GET /dashboard/sinh-vien/phong-thi
+     */
+    @GetMapping("/sinh-vien/phong-thi")
+    public String trangPhongThiSinhVien() {
+        return "sinh-vien-phong-thi";
+    }
+
+    /**
      * Trả về trang Dashboard của GIÁO VIÊN
      * URL: GET /dashboard/giao-vien
      *
@@ -86,6 +96,16 @@ public class DashboardController {
     @GetMapping("/giao-vien/de-thi")
     public String trangQuanLyDeThi() {
         return "de-thi-quan-ly";
+    }
+
+    /**
+     * Trang chỉnh sửa câu hỏi trong đề (văn bản thô + xem trước).
+     * URL: GET /dashboard/giao-vien/de-thi/{deThiId}/chinh-sua-cau-hoi
+     */
+    @GetMapping("/giao-vien/de-thi/{deThiId}/chinh-sua-cau-hoi")
+    public String trangChinhSuaCauHoiTrongDe(@PathVariable String deThiId, Model model) {
+        model.addAttribute("deThiId", deThiId);
+        return "de-thi-chinh-sua-cau-hoi";
     }
 
     /**
