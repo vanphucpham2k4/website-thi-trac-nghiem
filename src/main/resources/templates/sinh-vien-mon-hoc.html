@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Môn học - ThiTracNghiem</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Đóng menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">MENU CHÍNH</span>
+                <a th:href="@{/dashboard/sinh-vien}" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Lịch Sử Thi</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/phong-thi}" class="menu-item">
+                    <i class="fas fa-door-open"></i>
+                    <span>Lớp/Phòng Thi</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/mon-hoc}" class="menu-item active">
+                    <i class="fas fa-book"></i>
+                    <span>Môn Học</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/sinh-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i>
+                    <span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Môn học</h1>
+            </div>
+
+            <div class="header-right">
+                <div class="user-info" id="userInfo">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge" id="displayRole">Sinh viên</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="dashboard-card" style="text-align: center; padding: 3rem 1.5rem;">
+                <div style="font-size: 3rem; color: #a0aec0; margin-bottom: 1rem;">
+                    <i class="fas fa-book"></i>
+                </div>
+                <p style="font-size: 1.15rem; color: #4a5568; margin: 0; font-weight: 500;">
+                    Trang này đang được phát triển
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script th:src="@{/js/sinh-vien-phong-thi.js}"></script>
+</body>
+</html>

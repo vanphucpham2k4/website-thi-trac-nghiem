@@ -6,6 +6,7 @@ import com.example.webthitracnghiem.dto.SinhVienDashboardDTO;
 import com.example.webthitracnghiem.service.DashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -55,6 +56,76 @@ public class DashboardController {
     }
 
     /**
+     * Trang Lớp/Phòng thi (sinh viên).
+     * URL: GET /dashboard/sinh-vien/phong-thi
+     */
+    @GetMapping("/sinh-vien/phong-thi")
+    public String trangPhongThiSinhVien() {
+        return "sinh-vien-phong-thi";
+    }
+
+    /**
+     * Trang danh sách đề thi trong một lớp (sinh viên) — nội dung đề thi bổ sung sau.
+     * URL: GET /dashboard/sinh-vien/phong-thi/{lopId}
+     */
+    @GetMapping("/sinh-vien/phong-thi/{lopId}")
+    public String trangPhongThiSinhVienChiTiet(@PathVariable String lopId, Model model) {
+        model.addAttribute("lopId", lopId);
+        return "sinh-vien-phong-thi-chi-tiet";
+    }
+
+    /**
+     * Trang Môn học (sinh viên) — placeholder.
+     * URL: GET /dashboard/sinh-vien/mon-hoc
+     */
+    @GetMapping("/sinh-vien/mon-hoc")
+    public String trangMonHocSinhVien() {
+        return "sinh-vien-mon-hoc";
+    }
+
+    /**
+     * Trang Lịch sử thi (sinh viên) — placeholder.
+     * URL: GET /dashboard/sinh-vien/lich-su-thi
+     */
+    @GetMapping("/sinh-vien/lich-su-thi")
+    public String trangLichSuThiSinhVien() {
+        return "sinh-vien-lich-su-thi";
+    }
+
+    /**
+     * Xem lại chi tiết một bài đã nộp (lịch sử thi).
+     * URL: GET /dashboard/sinh-vien/lich-su-thi/{phienThiId}
+     */
+    @GetMapping("/sinh-vien/lich-su-thi/{phienThiId}")
+    public String trangLichSuThiChiTiet(@PathVariable String phienThiId, Model model) {
+        model.addAttribute("phienThiId", phienThiId);
+        model.addAttribute("thiAnDanh", false);
+        return "sinh-vien-lich-su-chi-tiet";
+    }
+
+    /**
+     * Làm bài thi (theo phiên).
+     * URL: GET /dashboard/sinh-vien/lam-bai/{phienThiId}
+     */
+    @GetMapping("/sinh-vien/lam-bai/{phienThiId}")
+    public String trangLamBai(@PathVariable String phienThiId, Model model) {
+        model.addAttribute("phienThiId", phienThiId);
+        model.addAttribute("thiAnDanh", false);
+        return "sinh-vien-lam-bai";
+    }
+
+    /**
+     * Kết quả bài thi sau khi nộp.
+     * URL: GET /dashboard/sinh-vien/ket-qua/{phienThiId}
+     */
+    @GetMapping("/sinh-vien/ket-qua/{phienThiId}")
+    public String trangKetQuaThi(@PathVariable String phienThiId, Model model) {
+        model.addAttribute("phienThiId", phienThiId);
+        model.addAttribute("thiAnDanh", false);
+        return "sinh-vien-ket-qua-thi";
+    }
+
+    /**
      * Trả về trang Dashboard của GIÁO VIÊN
      * URL: GET /dashboard/giao-vien
      *
@@ -89,12 +160,40 @@ public class DashboardController {
     }
 
     /**
+     * Trang chỉnh sửa câu hỏi trong đề (văn bản thô + xem trước).
+     * URL: GET /dashboard/giao-vien/de-thi/{deThiId}/chinh-sua-cau-hoi
+     */
+    @GetMapping("/giao-vien/de-thi/{deThiId}/chinh-sua-cau-hoi")
+    public String trangChinhSuaCauHoiTrongDe(@PathVariable String deThiId, Model model) {
+        model.addAttribute("deThiId", deThiId);
+        return "de-thi-chinh-sua-cau-hoi";
+    }
+
+    /**
      * Trang ngân hàng câu hỏi của giáo viên
      * URL: GET /dashboard/giao-vien/ngan-hang-cau-hoi
      */
     @GetMapping("/giao-vien/ngan-hang-cau-hoi")
     public String trangNganHangCauHoi() {
         return "ngan-hang-cau-hoi";
+    }
+
+    /**
+     * Trang Quản lý sinh viên (giáo viên).
+     * URL: GET /dashboard/giao-vien/quan-ly-sinh-vien
+     */
+    @GetMapping("/giao-vien/quan-ly-sinh-vien")
+    public String trangQuanLySinhVienGiaoVien() {
+        return "giao-vien-quan-ly-sinh-vien";
+    }
+
+    /**
+     * Trang Quản lý lớp học (giáo viên).
+     * URL: GET /dashboard/giao-vien/quan-ly-lop-hoc
+     */
+    @GetMapping("/giao-vien/quan-ly-lop-hoc")
+    public String trangQuanLyLopHocGiaoVien() {
+        return "giao-vien-quan-ly-lop-hoc";
     }
 
     // ========================================

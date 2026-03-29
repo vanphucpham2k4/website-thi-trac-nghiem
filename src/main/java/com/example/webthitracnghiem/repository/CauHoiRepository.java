@@ -1,5 +1,6 @@
 package com.example.webthitracnghiem.repository;
 
+import com.example.webthitracnghiem.model.ChuDe;
 import com.example.webthitracnghiem.model.CauHoi;
 import com.example.webthitracnghiem.model.NguoiDung;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,6 +18,8 @@ import java.util.List;
 public interface CauHoiRepository extends JpaRepository<CauHoi, String> {
 
     List<CauHoi> findByNguoiDung(NguoiDung nguoiDung);
+
+    long countByChuDe(ChuDe chuDe);
 
     /**
      * Lọc câu hỏi linh hoạt theo nhiều tiêu chí.

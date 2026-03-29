@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chỉnh sửa câu hỏi trong đề - Hệ Thống Thi Trắc Nghiệm</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/de-thi-chinh-sua-cau-hoi.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        #toastContainer {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            min-width: 280px;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .toast-success { background: #f0fff4; color: #276749; border-left: 4px solid #48bb78; }
+        .toast-error { background: #fff5f5; color: #9b2c2c; border-left: 4px solid #f56565; }
+        .toast-info { background: #ebf8ff; color: #2a4a6b; border-left: 4px solid #4299e1; }
+        @media print {
+            .sidebar, .main-header .header-left button, .edit-exam-actions, .edit-exam-scoring, .split-pane-header-tools, .btn-sync, #toastContainer { display: none !important; }
+            .split-editor-wrap { min-height: auto; border: none; box-shadow: none; }
+            .split-pane.editor { display: none !important; }
+            .split-pane.preview { border: none !important; }
+        }
+    </style>
+</head>
+<body>
+<input type="hidden" id="deThiId" th:value="${deThiId}">
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a th:href="@{/}" class="sidebar-logo">
+            <i class="fas fa-graduation-cap"></i>
+            <span>ThiTracNghiem</span>
+        </a>
+        <button class="sidebar-close" id="sidebarClose" type="button"><i class="fas fa-times"></i></button>
+    </div>
+    <nav class="sidebar-menu">
+        <div class="menu-section">
+            <span class="menu-label">QUẢN LÝ</span>
+            <a th:href="@{/dashboard/giao-vien}" class="menu-item">
+                <i class="fas fa-home"></i><span>Trang Chủ</span>
+            </a>
+            <a th:href="@{/dashboard/giao-vien/de-thi}" class="menu-item active">
+                <i class="fas fa-file-alt"></i><span>Quản Lý Đề Thi</span>
+            </a>
+            <a th:href="@{/dashboard/giao-vien/ngan-hang-cau-hoi}" class="menu-item">
+                <i class="fas fa-question-circle"></i><span>Ngân Hàng Câu Hỏi</span>
+            </a>
+            <a th:href="@{/dashboard/giao-vien/quan-ly-sinh-vien}" class="menu-item"><i class="fas fa-users"></i><span>Quản Lý Sinh Viên</span></a>
+            <a th:href="@{/dashboard/giao-vien/quan-ly-lop-hoc}" class="menu-item"><i class="fas fa-school"></i><span>Quản Lý Lớp Học</span></a>
+            <a th:href="@{/dashboard/giao-vien/theo-doi-thi}" class="menu-item"><i class="fas fa-user-check"></i><span>Theo Dõi Tham Gia Thi</span></a>
+            <a href="#" class="menu-item"><i class="fas fa-chart-bar"></i><span>Thống Kê</span></a>
+        </div>
+        <div class="menu-section">
+            <span class="menu-label">TÀI KHOẢN</span>
+            <a th:href="@{/dashboard/giao-vien/ho-so}" class="menu-item">
+                <i class="fas fa-user"></i><span>Hồ Sơ</span>
+            </a>
+            <a href="#" class="menu-item logout-btn" id="btnLogout">
+                <i class="fas fa-sign-out-alt"></i><span>Đăng Xuất</span>
+            </a>
+        </div>
+    </nav>
+</aside>
+
+<main class="main-content">
+    <header class="main-header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fas fa-bars"></i></button>
+            <h1><i class="fas fa-edit" style="color:#667eea;margin-right:10px;"></i>Chỉnh sửa nội dung câu hỏi</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <div class="user-info-text">
+                    <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                    <span class="user-role-badge">Giáo viên</span>
+                </div>
+                <div class="user-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-content">
+        <div class="edit-exam-toolbar">
+            <div>
+                <div class="edit-exam-breadcrumb">
+                    <a th:href="@{/dashboard/giao-vien}">Bảng điều khiển</a>
+                    &nbsp;&gt;&nbsp;
+                    <a th:href="@{/dashboard/giao-vien/de-thi}">Quản lý đề thi</a>
+                    &nbsp;&gt;&nbsp;
+                    <span>Chỉnh sửa nội dung</span>
+                </div>
+                <div class="edit-exam-title-row">
+                    <h2 id="pageTitleDe">Đang tải…</h2>
+                    <span id="badgeTrangThai" class="badge-trang-thai nhap">—</span>
+                </div>
+                <div class="edit-exam-meta" id="pageMetaDe"></div>
+                <div class="edit-exam-scoring" id="editExamScoring">
+                    <span class="scoring-label"><i class="fas fa-calculator"></i> Thang điểm bài thi</span>
+                    <input type="number" id="inputThangDiem" min="0.01" max="1000" step="0.01" value="10" title="Tổng điểm tối đa (mặc định 10)" />
+                    <span class="scoring-arrow" aria-hidden="true">→</span>
+                    <span class="scoring-per">Mỗi câu: <strong id="labelDiemMoiCau">—</strong> điểm</span>
+                    <span class="scoring-hint">(chia đều cho <span id="labelSoCauCham">0</span> câu)</span>
+                </div>
+            </div>
+            <div class="edit-exam-actions">
+                <button type="button" class="btn-link-quiet" id="btnHuyBo">Hủy bỏ</button>
+                <button type="button" class="btn-outline-soft" id="btnLuuNhap"><i class="fas fa-save"></i> Lưu</button>
+                <button type="button" class="btn-primary-arrow" id="btnQuayLai"><i class="fas fa-arrow-left"></i> Quay lại</button>
+            </div>
+        </div>
+
+        <div class="split-editor-wrap">
+            <div class="split-pane preview">
+                <div class="split-pane-header">
+                    <span>XEM TRƯỚC TRỰC TIẾP</span>
+                    <div class="split-pane-header-tools">
+                        <button type="button" title="In xem trước" id="btnPrintPreview"><i class="fas fa-print"></i></button>
+                    </div>
+                </div>
+                <div class="preview-warning" id="previewWarning" style="display:none;margin:12px 16px 0;">
+                    <strong>Cảnh báo định dạng:</strong> <span id="previewWarningText"></span>
+                </div>
+                <div class="preview-body" id="previewBody">
+                    <div class="preview-empty">
+                        <i class="fas fa-spinner fa-spin"></i> Đang tải nội dung…
+                    </div>
+                </div>
+            </div>
+            <div class="split-pane editor">
+                <div class="split-pane-header">
+                    <div>
+                        <div>TRÌNH CHỈNH SỬA VĂN BẢN THÔ</div>
+                        <div class="split-pane-sub">Thêm <strong>*</strong> trước chữ cái đáp án để chọn đáp án đúng (vd: <code>*B.</code> nội dung)</div>
+                    </div>
+                    <button type="button" class="btn-sync" id="btnDongBo" title="Làm mới xem trước">
+                        <i class="fas fa-sync-alt"></i> Đồng bộ thay đổi
+                    </button>
+                </div>
+                <div class="editor-body-wrap">
+                    <div class="editor-line-gutter" id="lineGutter"><div>1</div></div>
+                    <textarea id="vanBanTho" placeholder="1. Nội dung câu hỏi&#10;A. Lựa chọn A&#10;*B. Đáp án đúng&#10;C. Lựa chọn C&#10;D. Lựa chọn D&#10;&#10;2. Câu tiếp theo..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <p class="edit-footer-note" id="footerLastEdit">© Chỉnh sửa lần cuối: —</p>
+    </div>
+</main>
+
+<div id="toastContainer"></div>
+<script th:src="@{/js/de-thi-chinh-sua-cau-hoi.js}"></script>
+</body>
+</html>

@@ -2,7 +2,9 @@ package com.example.webthitracnghiem.controller;
 
 import com.example.webthitracnghiem.dto.*;
 import com.example.webthitracnghiem.service.AuthService;
+import com.example.webthitracnghiem.service.DeThiLinkCongKhaiService;
 import com.example.webthitracnghiem.service.DeThiService;
+import com.example.webthitracnghiem.service.DeThiXuatBanService;
 import com.example.webthitracnghiem.service.ImportDeThiService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -28,10 +30,18 @@ public class DeThiApiController {
 
     private final DeThiService deThiService;
     private final ImportDeThiService importDeThiService;
+    private final DeThiXuatBanService deThiXuatBanService;
+    private final DeThiLinkCongKhaiService deThiLinkCongKhaiService;
 
-    public DeThiApiController(DeThiService deThiService, ImportDeThiService importDeThiService) {
+    public DeThiApiController(
+            DeThiService deThiService,
+            ImportDeThiService importDeThiService,
+            DeThiXuatBanService deThiXuatBanService,
+            DeThiLinkCongKhaiService deThiLinkCongKhaiService) {
         this.deThiService = deThiService;
         this.importDeThiService = importDeThiService;
+        this.deThiXuatBanService = deThiXuatBanService;
+        this.deThiLinkCongKhaiService = deThiLinkCongKhaiService;
     }
 
     // ================================================================
@@ -87,6 +97,138 @@ public class DeThiApiController {
         ApiResponse<DeThiListItemDTO> res = deThiService.layChiTietDeThi(deThiId, userId);
         if (!res.isSuccess()) {
             return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // GET /api/giao-vien/de-thi/{id}/lop-hoc-xuat-ban — Lớp để xuất bản đề
+    // ================================================================
+
+    @GetMapping("/{id}/lop-hoc-xuat-ban")
+    public ResponseEntity<ApiResponse<List<GiaoVienLopHocSelectDTO>>> layLopChoXuatBan(
+            @PathVariable("id") String deThiId,
+            HttpServletRequest request) {
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Phiên đăng nhập không hợp lệ hoặc không có quyền giáo viên.", AuthService.ERR_HE_THONG));
+        }
+        ApiResponse<List<GiaoVienLopHocSelectDTO>> res = deThiXuatBanService.layDanhSachLopChoDropdown(userId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // POST /api/giao-vien/de-thi/{id}/xuat-ban-cho-lop — Gắn đề công khai vào lớp
+    // ================================================================
+
+    @PostMapping("/{id}/xuat-ban-cho-lop")
+    public ResponseEntity<ApiResponse<Void>> xuatBanChoLop(
+            @PathVariable("id") String deThiId,
+            @RequestBody XuatBanDeThiChoLopDTO body,
+            HttpServletRequest request) {
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) {
+            return traVeLoiVoid401();
+        }
+        ApiResponse<Void> res = deThiXuatBanService.xuatBanChoLop(userId, deThiId, body);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // GET /api/giao-vien/de-thi/{id}/lop-hoc-da-xuat-ban — Lớp đã xuất bản (Thu hồi)
+    // ================================================================
+
+    @GetMapping("/{id}/lop-hoc-da-xuat-ban")
+    public ResponseEntity<ApiResponse<List<GiaoVienLopDaXuatBanDTO>>> layLopDaXuatBan(
+            @PathVariable("id") String deThiId,
+            HttpServletRequest request) {
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Phiên đăng nhập không hợp lệ.", AuthService.ERR_HE_THONG));
+        }
+        ApiResponse<List<GiaoVienLopDaXuatBanDTO>> res = deThiXuatBanService.layDanhSachLopDaXuatBan(userId, deThiId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // POST /api/giao-vien/de-thi/{id}/thu-hoi-cho-lop — Thu hồi đề khỏi lớp
+    // ================================================================
+
+    @PostMapping("/{id}/thu-hoi-cho-lop")
+    public ResponseEntity<ApiResponse<Void>> thuHoiChoLop(
+            @PathVariable("id") String deThiId,
+            @RequestBody XuatBanDeThiChoLopDTO body,
+            HttpServletRequest request) {
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) {
+            return traVeLoiVoid401();
+        }
+        ApiResponse<Void> res = deThiXuatBanService.thuHoiChoLop(userId, deThiId, body);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // Link tham gia công khai (khác xuất bản lớp)
+    // ================================================================
+
+    @GetMapping("/{id}/link-tham-gia")
+    public ResponseEntity<ApiResponse<DeThiLinkThamGiaResponseDTO>> layLinkThamGia(
+            @PathVariable("id") String deThiId,
+            HttpServletRequest request) {
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Phiên đăng nhập không hợp lệ.", AuthService.ERR_HE_THONG));
+        }
+        ApiResponse<DeThiLinkThamGiaResponseDTO> res = deThiLinkCongKhaiService.layLinkHienTai(userId, deThiId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/{id}/tao-link-tham-gia")
+    public ResponseEntity<ApiResponse<DeThiLinkThamGiaResponseDTO>> taoLinkThamGia(
+            @PathVariable("id") String deThiId,
+            @RequestBody(required = false) TaoLinkThamGiaDTO body,
+            HttpServletRequest request) {
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Phiên đăng nhập không hợp lệ.", AuthService.ERR_HE_THONG));
+        }
+        ApiResponse<DeThiLinkThamGiaResponseDTO> res = deThiLinkCongKhaiService.taoHoacCapNhatLink(userId, deThiId, body);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    @DeleteMapping("/{id}/link-tham-gia")
+    public ResponseEntity<ApiResponse<Void>> huyLinkThamGia(
+            @PathVariable("id") String deThiId,
+            HttpServletRequest request) {
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) {
+            return traVeLoiVoid401();
+        }
+        ApiResponse<Void> res = deThiLinkCongKhaiService.huyLinkThuHoi(userId, deThiId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
         }
         return ResponseEntity.ok(res);
     }
@@ -278,6 +420,45 @@ public class DeThiApiController {
 
         ApiResponse<Void> res = deThiService.capNhatThuTu(deThiId, cauHoiIdsOrdered, userId);
         if (!res.isSuccess()) return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // GET /api/giao-vien/de-thi/{id}/cau-hoi/van-ban-tho — Văn bản thô (trang split-view)
+    // ================================================================
+
+    @GetMapping("/{id}/cau-hoi/van-ban-tho")
+    public ResponseEntity<ApiResponse<DeThiVanBanCauHoiDTO>> layVanBanThoCauHoi(
+            @PathVariable("id") String deThiId,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoi401();
+
+        ApiResponse<DeThiVanBanCauHoiDTO> res = deThiService.layVanBanThoCauHoiTrongDe(deThiId, userId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    // ================================================================
+    // PUT /api/giao-vien/de-thi/{id}/cau-hoi/van-ban-tho — Lưu văn bản thô
+    // ================================================================
+
+    @PutMapping("/{id}/cau-hoi/van-ban-tho")
+    public ResponseEntity<ApiResponse<Void>> luuVanBanThoCauHoi(
+            @PathVariable("id") String deThiId,
+            @RequestBody LuuVanBanCauHoiRequestDTO body,
+            HttpServletRequest request) {
+
+        String userId = layUserIdTuJwt(request);
+        if (userId == null) return traVeLoiVoid401();
+
+        ApiResponse<Void> res = deThiService.luuVanBanThoCauHoiTrongDe(deThiId, userId, body);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(mapStatusCode(res.getErrorCode())).body(res);
+        }
         return ResponseEntity.ok(res);
     }
 

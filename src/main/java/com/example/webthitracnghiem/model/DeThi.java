@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -70,6 +71,12 @@ public class DeThi {
 	 */
 	@Column(name = "trang_thai", length = 20)
 	private String trangThai = "NHAP";
+
+	/**
+	 * Tổng điểm tối đa của bài thi (thang điểm). Điểm mỗi câu = thangDiemToiDa / số câu (chia đều).
+	 */
+	@Column(name = "thang_diem_toi_da", precision = 14, scale = 6)
+	private BigDecimal thangDiemToiDa;
 
 	/**
 	 * Thời điểm xóa mềm — null có nghĩa đề thi chưa bị xóa.

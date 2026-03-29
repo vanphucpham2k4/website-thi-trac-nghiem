@@ -62,6 +62,22 @@ public class JwtService {
     }
 
     /**
+     * JWT cho phiên thi ẩn danh (link công khai): subject = {@code phienThiId}, vai trò {@link AuthService#ROLE_THI_AN_DANH}.
+     */
+    public String taoTokenThiAnDanh(String phienThiId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expirationMs);
+        return Jwts.builder()
+                .subject(phienThiId)
+                .claim("email", "")
+                .claim("vaiTro", AuthService.ROLE_THI_AN_DANH)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(secretKey, Jwts.SIG.HS256)
+                .compact();
+    }
+
+    /**
      * Lấy userId (subject) từ token.
      *
      * @param token Chuỗi JWT

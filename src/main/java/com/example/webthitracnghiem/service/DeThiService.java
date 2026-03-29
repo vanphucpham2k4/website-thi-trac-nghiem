@@ -4,9 +4,13 @@ import com.example.webthitracnghiem.dto.*;
 import com.example.webthitracnghiem.model.*;
 import com.example.webthitracnghiem.repository.*;
 import com.example.webthitracnghiem.repository.CauHoiRepository;
+import com.example.webthitracnghiem.util.DeThiCauHoiVanBanCodec;
+import com.example.webthitracnghiem.util.DeThiCauHoiVanBanCodec.ParsedMcq;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -25,19 +29,22 @@ public class DeThiService {
     private final PhienThiRepository phienThiRepository;
     private final DeThiCauHoiRepository deThiCauHoiRepository;
     private final CauHoiRepository cauHoiRepository;
+    private final DeThiLopHocRepository deThiLopHocRepository;
 
     public DeThiService(DeThiRepository deThiRepository,
                         MonHocRepository monHocRepository,
                         NguoiDungRepository nguoiDungRepository,
                         PhienThiRepository phienThiRepository,
                         DeThiCauHoiRepository deThiCauHoiRepository,
-                        CauHoiRepository cauHoiRepository) {
+                        CauHoiRepository cauHoiRepository,
+                        DeThiLopHocRepository deThiLopHocRepository) {
         this.deThiRepository = deThiRepository;
         this.monHocRepository = monHocRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.phienThiRepository = phienThiRepository;
         this.deThiCauHoiRepository = deThiCauHoiRepository;
         this.cauHoiRepository = cauHoiRepository;
+        this.deThiLopHocRepository = deThiLopHocRepository;
     }
 
     // ================================================================
@@ -135,8 +142,12 @@ public class DeThiService {
         deThi.setTrangThai(trangThai);
         deThi.setNguoiDung(optGiaoVien.get());
         deThi.setThoiGianTao(LocalDateTime.now());
+        deThi.setThoiGianMo(dto.getThoiGianMo());
+        deThi.setThoiGianDong(dto.getThoiGianDong());
+        deThi.setSoLanThiToiDa(dto.getSoLanThiToiDa());
         deThi.setTronCauHoi(false);
         deThi.setTronDapAn(false);
+        deThi.setThangDiemToiDa(BigDecimal.TEN);
 
         DeThi saved = deThiRepository.save(deThi);
         return ApiResponse.success("Tạo đề thi thành công!", chuyenDoiDeThiDTO(saved));
@@ -177,8 +188,9 @@ public class DeThiService {
         deThi.setThoiGianMo(dto.getThoiGianMo());
         deThi.setThoiGianDong(dto.getThoiGianDong());
         deThi.setSoLanThiToiDa(dto.getSoLanThiToiDa());
-        if (dto.getTronCauHoi() != null) deThi.setTronCauHoi(dto.getTronCauHoi());
-        if (dto.getTronDapAn() != null) deThi.setTronDapAn(dto.getTronDapAn());
+        // Không còn UI trộn — luôn đặt false
+        deThi.setTronCauHoi(false);
+        deThi.setTronDapAn(false);
 
         DeThi saved = deThiRepository.save(deThi);
         return ApiResponse.success("Cập nhật đề thi thành công!", chuyenDoiDeThiDTO(saved));
@@ -259,7 +271,8 @@ public class DeThiService {
                     AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
 
-        // Xóa các liên kết câu hỏi trước, sau đó xóa đề thi
+        // Xóa liên kết lớp + câu hỏi, sau đó xóa đề thi
+        deThiLopHocRepository.deleteByDeThi(deThi);
         deThiCauHoiRepository.deleteByDeThi(deThi);
         deThiRepository.delete(deThi);
 
@@ -302,6 +315,9 @@ public class DeThiService {
         dto.setTronCauHoi(deThi.getTronCauHoi());
         dto.setTronDapAn(deThi.getTronDapAn());
         dto.setDaBiXoa(deThi.getDeletedAt() != null);
+        dto.setDaXuatBan(!deThiLopHocRepository.findByDeThi(deThi).isEmpty());
+        String ma = deThi.getMaTruyCap();
+        dto.setCoLinkThamGia(ma != null && !ma.isBlank());
         dto.setDeletedAt(deThi.getDeletedAt());
         dto.setThoiGianTao(deThi.getThoiGianTao());
 
@@ -462,6 +478,152 @@ public class DeThiService {
         }
 
         return ApiResponse.success("Đã cập nhật thứ tự câu hỏi!");
+    }
+
+    /**
+     * Văn bản thô các câu trắc nghiệm trong đề (trang chỉnh sửa split-view).
+     */
+    @Transactional(readOnly = true)
+    public ApiResponse<DeThiVanBanCauHoiDTO> layVanBanThoCauHoiTrongDe(String deThiId, String nguoiDungId) {
+        Optional<DeThi> optDeThi = deThiRepository.findByIdAndNotDeleted(deThiId);
+        if (optDeThi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy đề thi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        DeThi deThi = optDeThi.get();
+        if (!deThi.getNguoiDung().getId().equals(nguoiDungId)) {
+            return ApiResponse.error("Bạn không có quyền truy cập đề thi này!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+        }
+
+        List<DeThiCauHoi> links = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi);
+        for (DeThiCauHoi link : links) {
+            CauHoi c = link.getCauHoi();
+            if (c.getLoaiCauHoi() == null || !"TRAC_NGHIEM".equals(c.getLoaiCauHoi())) {
+                return ApiResponse.error(
+                        "Đề có câu không phải trắc nghiệm 4 phương án — không dùng được trình sửa văn bản thô. Chỉnh trong Ngân hàng câu hỏi.",
+                        AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+            }
+        }
+
+        List<DeThiCauHoiDTO> dtos = links.stream().map(this::chuyenDoiDeThiCauHoiDTO).toList();
+        String vanBan = DeThiCauHoiVanBanCodec.serialize(dtos);
+
+        DeThiVanBanCauHoiDTO out = new DeThiVanBanCauHoiDTO();
+        out.setDeThiId(deThi.getId());
+        out.setTenDeThi(deThi.getTen());
+        out.setMaDeThi(deThi.getMaDeThi());
+        out.setTrangThai(deThi.getTrangThai() != null ? deThi.getTrangThai() : "NHAP");
+        out.setTenMonHoc(deThi.getMonHoc() != null ? deThi.getMonHoc().getTen() : "");
+        int soCau = links.size();
+        out.setSoCau(soCau);
+        BigDecimal thang = layThangDiemToiDaHieuLuc(deThi);
+        out.setThangDiemToiDa(thang);
+        if (soCau > 0) {
+            out.setDiemMoiCau(tinhDiemMoiCau(thang, soCau));
+        } else {
+            out.setDiemMoiCau(null);
+        }
+        out.setVanBan(vanBan);
+        return ApiResponse.success("OK", out);
+    }
+
+    /**
+     * Lưu nội dung câu hỏi từ văn bản thô (số câu và thứ tự không đổi).
+     */
+    @Transactional
+    public ApiResponse<Void> luuVanBanThoCauHoiTrongDe(String deThiId, String nguoiDungId, LuuVanBanCauHoiRequestDTO body) {
+        String vanBan = body != null ? body.getVanBan() : null;
+        BigDecimal thangCapNhat = body != null ? body.getThangDiemToiDa() : null;
+
+        Optional<DeThi> optDeThi = deThiRepository.findByIdAndNotDeleted(deThiId);
+        if (optDeThi.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy đề thi!", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        DeThi deThi = optDeThi.get();
+        if (!deThi.getNguoiDung().getId().equals(nguoiDungId)) {
+            return ApiResponse.error("Bạn không có quyền chỉnh sửa đề thi này!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+        }
+
+        if (thangCapNhat != null) {
+            if (thangCapNhat.compareTo(new BigDecimal("0.01")) < 0
+                    || thangCapNhat.compareTo(new BigDecimal("1000")) > 0) {
+                return ApiResponse.error("Thang điểm phải từ 0,01 đến 1000.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+            }
+        }
+
+        List<DeThiCauHoi> links = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi);
+        for (DeThiCauHoi link : links) {
+            CauHoi c = link.getCauHoi();
+            if (c.getLoaiCauHoi() == null || !"TRAC_NGHIEM".equals(c.getLoaiCauHoi())) {
+                return ApiResponse.error(
+                        "Đề có câu không phải trắc nghiệm — không lưu được qua văn bản thô.",
+                        AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+            }
+        }
+
+        String raw = vanBan == null ? "" : vanBan;
+        if (raw.isBlank()) {
+            if (links.isEmpty()) {
+                return ApiResponse.success("OK");
+            }
+            return ApiResponse.error(
+                    "Văn bản trống nhưng đề vẫn có " + links.size() + " câu — không thể xóa câu tại đây.",
+                    AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+
+        List<ParsedMcq> parsed = new ArrayList<>();
+        String err = DeThiCauHoiVanBanCodec.parse(raw, parsed);
+        if (err != null) {
+            return ApiResponse.error(err, AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+        if (parsed.size() != links.size()) {
+            return ApiResponse.error(
+                    "Số câu trong văn bản (" + parsed.size() + ") phải trùng số câu trong đề (" + links.size() + ").",
+                    AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+
+        for (int i = 0; i < links.size(); i++) {
+            CauHoi ch = links.get(i).getCauHoi();
+            if (!ch.getNguoiDung().getId().equals(nguoiDungId)) {
+                return ApiResponse.error("Có câu hỏi không thuộc tài khoản của bạn!", AuthService.ERR_VAI_TRO_KHONG_HOP_LE);
+            }
+            ParsedMcq p = parsed.get(i);
+            ch.setNoiDung(p.getNoiDung());
+            ch.setLuaChonA(chuoiRongThanhNull(p.getLuaChonA()));
+            ch.setLuaChonB(chuoiRongThanhNull(p.getLuaChonB()));
+            ch.setLuaChonC(chuoiRongThanhNull(p.getLuaChonC()));
+            ch.setLuaChonD(chuoiRongThanhNull(p.getLuaChonD()));
+            ch.setDapAnDung(p.getDapAnDung());
+            cauHoiRepository.save(ch);
+        }
+        if (thangCapNhat != null) {
+            deThi.setThangDiemToiDa(thangCapNhat.setScale(6, RoundingMode.HALF_UP));
+            deThiRepository.save(deThi);
+        }
+        return ApiResponse.success("Đã lưu nội dung câu hỏi.");
+    }
+
+    /** Thang điểm lưu trên đề; null hoặc không hợp lệ → mặc định 10. */
+    private static BigDecimal layThangDiemToiDaHieuLuc(DeThi deThi) {
+        BigDecimal t = deThi.getThangDiemToiDa();
+        if (t == null || t.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.TEN;
+        }
+        return t;
+    }
+
+    /** Điểm mỗi câu khi chia đều thang điểm cho số câu. */
+    private static BigDecimal tinhDiemMoiCau(BigDecimal thangDiemToiDa, int soCau) {
+        if (soCau <= 0 || thangDiemToiDa == null) {
+            return null;
+        }
+        return thangDiemToiDa.divide(BigDecimal.valueOf(soCau), 6, RoundingMode.HALF_UP);
+    }
+
+    private static String chuoiRongThanhNull(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        return s;
     }
 
     /**

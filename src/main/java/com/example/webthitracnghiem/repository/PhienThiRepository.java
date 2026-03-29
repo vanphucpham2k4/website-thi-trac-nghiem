@@ -1,6 +1,7 @@
 package com.example.webthitracnghiem.repository;
 
 import com.example.webthitracnghiem.model.DeThi;
+import com.example.webthitracnghiem.model.LopHoc;
 import com.example.webthitracnghiem.model.NguoiDung;
 import com.example.webthitracnghiem.model.PhienThi;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository - Truy xuất dữ liệu bảng PHIEN_THI (Phiên Thi)
@@ -62,4 +64,38 @@ public interface PhienThiRepository extends JpaRepository<PhienThi, String> {
     boolean existsByDeThi(DeThi deThi);
 
     List<PhienThi> findByDeThiId(String deThiId);
+
+    /**
+     * Đếm số phiên đã nộp (thoiGianNop != null) của một sinh viên với một đề thi.
+     * Chỉ phiên đã nộp mới tính vào lượt thi.
+     */
+    @Query("SELECT COUNT(p) FROM PhienThi p WHERE p.nguoiDung = :nguoiDung AND p.deThi = :deThi AND p.thoiGianNop IS NOT NULL")
+    long demSoLanDaNop(@Param("nguoiDung") NguoiDung nguoiDung, @Param("deThi") DeThi deThi);
+
+    /**
+     * Tìm phiên đang dở (đã bắt đầu làm nhưng chưa nộp) của sinh viên + đề thi.
+     * Điều kiện: thoiGianBatDau != null AND thoiGianNop == null.
+     */
+    @Query("SELECT p FROM PhienThi p WHERE p.nguoiDung = :nguoiDung AND p.deThi = :deThi AND p.thoiGianBatDau IS NOT NULL AND p.thoiGianNop IS NULL")
+    Optional<PhienThi> timPhienDangDo(@Param("nguoiDung") NguoiDung nguoiDung, @Param("deThi") DeThi deThi);
+
+    /**
+     * Đếm số phiên thi theo từng sinh viên, chỉ các đề chưa xóa mềm của giáo viên chỉ định.
+     */
+    @Query("SELECT p.nguoiDung.id, COUNT(p) FROM PhienThi p WHERE p.deThi.nguoiDung.id = :giaoVienId AND p.deThi.deletedAt IS NULL GROUP BY p.nguoiDung.id")
+    List<Object[]> demSoPhienThiTheoSinhVienCuaGiaoVien(@Param("giaoVienId") String giaoVienId);
+
+    Optional<PhienThi> findByIdAndNguoiDung(String id, NguoiDung nguoiDung);
+
+    /**
+     * Đếm số phiên thi của một đề + lớp (bất kể trạng thái nộp hay chưa).
+     * Dùng để cảnh báo khi thu hồi: có bao nhiêu SV đã mở bài.
+     */
+    long countByDeThiAndLopHoc(DeThi deThi, LopHoc lopHoc);
+
+    /** Phiên ẩn danh đang dở (cùng đề + cùng họ tên đã chuẩn hóa). */
+    Optional<PhienThi> findByDeThiAndNguoiDungIsNullAndHoTenAnDanhAndThoiGianBatDauIsNotNullAndThoiGianNopIsNull(
+            DeThi deThi, String hoTenAnDanh);
+
+    long countByDeThiAndNguoiDungIsNullAndHoTenAnDanhAndThoiGianNopIsNotNull(DeThi deThi, String hoTenAnDanh);
 }

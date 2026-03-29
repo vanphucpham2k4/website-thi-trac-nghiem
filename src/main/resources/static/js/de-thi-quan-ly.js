@@ -4,6 +4,7 @@
  * Chức năng:
  *  - Tải danh sách đề thi (đang hoạt động + thùng rác)
  *  - Tạo / Sửa đề thi qua modal
+ *  - Quản lý câu hỏi: chuyển sang trang chỉnh sửa văn bản thô (/dashboard/.../chinh-sua-cau-hoi)
  *  - Xóa mềm / Khôi phục / Xóa hẳn
  *  - Import đề thi từ file PDF / DOCX
  *  - Toast notification cho mọi thao tác
@@ -22,6 +23,21 @@ let currentTab     = 'active';
 let editingDeThiId = null; // ID đang sửa (null = tạo mới)
 let pendingDeleteId = null;
 let importedQuestions = []; // Câu hỏi từ file import
+/** ID đề thi đang mở modal xuất bản */
+let xuatBanDeThiId = null;
+/** ID đề thi đang mở modal thu hồi */
+let thuHoiDeThiId = null;
+/** Lớp đang chọn thu hồi (mở confirm) */
+let thuHoiLopHienTai = null;
+/** ID đề đang mở modal xuất link tham gia công khai */
+let linkThamGiaDeThiId = null;
+
+const THOI_GIAN_PHUT_OPTIONS = [15, 30, 45, 60, 90, 120, 180];
+
+function chonThoiGianPhutHopLe(phut) {
+    const v = parseInt(phut, 10);
+    return THOI_GIAN_PHUT_OPTIONS.includes(v) ? String(v) : '60';
+}
 
 // ============================================================
 // INIT
@@ -33,21 +49,46 @@ document.addEventListener('DOMContentLoaded', () => {
     taiDanhSachDeThi();
     hienThiTenNguoiDung();
 
-    // Import drag-drop
-    const dropZone = document.getElementById('importDropZone');
+    document.getElementById('inputMonHoc').addEventListener('change', async () => {
+        await taiChuDeChoFormDeThi();
+        const preview = document.getElementById('modalImportPreview');
+        if (preview && preview.style.display !== 'none' && importedQuestions.length > 0) {
+            syncImportChuDeSelectFromForm();
+        }
+    });
+
+    document.getElementById('inputChuDeDeThi').addEventListener('change', () => {
+        const preview = document.getElementById('modalImportPreview');
+        if (preview && preview.style.display !== 'none' && importedQuestions.length > 0) {
+            syncImportChuDeSelectFromForm();
+        }
+    });
+
+    const modalImpChuDe = document.getElementById('modalImportChuDe');
+    if (modalImpChuDe) {
+        modalImpChuDe.addEventListener('change', () => {
+            const src = document.getElementById('inputChuDeDeThi');
+            const v = modalImpChuDe.value;
+            if (src && !src.disabled && v && [...src.options].some(o => o.value === v)) {
+                src.value = v;
+            }
+        });
+    }
+
+    // Nút toolbar
+    document.getElementById('btnTaoDeThi').addEventListener('click', () => moModalTao());
+
+    // Modal drag-drop (inside #modalDeThi)
+    const dropZone = document.getElementById('modalImportDropZone');
     if (dropZone) {
         dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
         dropZone.addEventListener('drop', e => {
             e.preventDefault(); dropZone.classList.remove('drag-over');
             const file = e.dataTransfer.files[0];
-            if (file) xuLyFileImport(file);
+            if (file) handleModalImportFile({ files: [file] });
         });
     }
-
-    // Nút toolbar
-    document.getElementById('btnTaoDeThi').addEventListener('click', () => moModalTao());
-    document.getElementById('btnImport').addEventListener('click', () => moModalImport());
 });
 
 // ============================================================
@@ -270,8 +311,28 @@ function renderActions(d) {
                 <i class="fas fa-times-circle"></i>
             </button>`;
     }
+    const coTheXuatBan = d.trangThai === 'CONG_KHAI' && (d.soCauHoi || 0) > 0;
+    const nutXuatBan = coTheXuatBan
+        ? `<button class="btn-icon btn-icon-publish" title="Xuất bản vào lớp" type="button" onclick="moModalXuatBan('${d.id}')">
+                <i class="fas fa-bullhorn"></i>
+           </button>`
+        : '';
+    const nutThuHoi = d.daXuatBan
+        ? `<button class="btn-icon btn-icon-recall" title="Thu hồi xuất bản" type="button" onclick="moModalThuHoi('${d.id}')">
+                <i class="fas fa-undo-alt"></i>
+           </button>`
+        : '';
+    const nutLinkThamGia = coTheXuatBan
+        ? `<button class="btn-icon btn-icon-link-share" title="Xuất link tham gia công khai" type="button" onclick="moModalLinkThamGia('${d.id}')">
+                <i class="fas fa-link"></i>
+           </button>`
+        : '';
     return `
-        <button class="btn-icon btn-icon-question" title="Quản lý câu hỏi" onclick="moModalCauHoiDeThi('${d.id}','${escHtml(d.tenDeThi)}')">
+        ${nutThuHoi}
+        ${nutLinkThamGia}
+        ${nutXuatBan}
+        <button class="btn-icon btn-icon-question" title="Quản lý câu hỏi" type="button"
+                onclick="window.location.href='/dashboard/giao-vien/de-thi/${d.id}/chinh-sua-cau-hoi'">
             <i class="fas fa-list-ol"></i>
         </button>
         <button class="btn-icon btn-icon-edit" title="Chỉnh sửa" onclick="moModalSua('${d.id}')">
@@ -280,6 +341,244 @@ function renderActions(d) {
         <button class="btn-icon btn-icon-delete" title="Xóa mềm" onclick="moConfirmXoa('${d.id}','${escHtml(d.tenDeThi)}')">
             <i class="fas fa-trash-alt"></i>
         </button>`;
+}
+
+async function moModalXuatBan(deThiId) {
+    if (!kiemTraXacThuc()) return;
+    xuatBanDeThiId = deThiId;
+    const sel = document.getElementById('selectLopXuatBan');
+    if (sel) {
+        sel.innerHTML = '<option value="">Đang tải…</option>';
+    }
+    moModal('modalXuatBan');
+    try {
+        const res = await apiGet(`${API_BASE}/${encodeURIComponent(deThiId)}/lop-hoc-xuat-ban`);
+        if (!res.success || !sel) {
+            showToast(res.message || 'Không tải được danh sách lớp.', 'error');
+            return;
+        }
+        const lops = res.data || [];
+        if (!lops.length) {
+            sel.innerHTML = '<option value="">Bạn chưa có lớp nào — hãy tạo ở Quản lý lớp học</option>';
+            return;
+        }
+        sel.innerHTML = '<option value="">— Chọn lớp học —</option>' +
+            lops.map((l) => `<option value="${escHtml(l.id)}">${escHtml(l.tenLop || l.id)}</option>`).join('');
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi tải danh sách lớp.', 'error');
+    }
+}
+
+async function xacNhanXuatBanDeThi() {
+    if (!xuatBanDeThiId || !kiemTraXacThuc()) return;
+    const sel = document.getElementById('selectLopXuatBan');
+    const lopId = sel ? sel.value : '';
+    if (!lopId) {
+        showToast('Vui lòng chọn lớp học.', 'error');
+        return;
+    }
+    try {
+        const res = await apiPost(`${API_BASE}/${encodeURIComponent(xuatBanDeThiId)}/xuat-ban-cho-lop`, { lopHocId: lopId });
+        if (!res.success) {
+            showToast(res.message || 'Xuất bản thất bại.', 'error');
+            return;
+        }
+        showToast(res.message || 'Đã xuất bản.', 'success');
+        dongModal('modalXuatBan');
+        xuatBanDeThiId = null;
+        taiDanhSachDeThi(); // reload để cập nhật trạng thái xuất bản
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
+}
+
+async function moModalThuHoi(deThiId) {
+    if (!kiemTraXacThuc()) return;
+    thuHoiDeThiId = deThiId;
+    const wrap = document.getElementById('danhSachLopDaXuatBan');
+    const empty = document.getElementById('thuHoiEmpty');
+    if (wrap) wrap.innerHTML = '<div style="text-align:center;color:#a0aec0;padding:1.5rem;">Đang tải…</div>';
+    if (empty) empty.style.display = 'none';
+    moModal('modalThuHoi');
+    try {
+        const res = await apiGet(`${API_BASE}/${encodeURIComponent(deThiId)}/lop-hoc-da-xuat-ban`);
+        if (!res.success) {
+            showToast(res.message || 'Không tải được danh sách lớp.', 'error');
+            return;
+        }
+        hienThiLopDaXuatBan(res.data || []);
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
+}
+
+function hienThiLopDaXuatBan(lops) {
+    const wrap = document.getElementById('danhSachLopDaXuatBan');
+    const empty = document.getElementById('thuHoiEmpty');
+    if (!wrap) return;
+    if (!lops.length) {
+        wrap.innerHTML = '';
+        if (empty) empty.style.display = '';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    wrap.innerHTML = lops
+        .map((l) => {
+            const thoiGian = l.thoiGianXuatBan
+                ? new Date(l.thoiGianXuatBan.replace(' ', 'T')).toLocaleString('vi-VN')
+                : '—';
+            const sv = l.soSinhVien != null ? l.soSinhVien : 0;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+                        padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px;background:#fafbff;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;color:#2d3748;font-size:0.92rem;">${escHtml(l.tenLop || l.id)}</div>
+                    <div style="font-size:0.78rem;color:#718096;margin-top:2px;">
+                        Xuất bản: ${thoiGian} · ${sv} SV
+                    </div>
+                </div>
+                <button type="button" onclick="thuHoiKhoiLop('${escHtml(l.id)}','${escHtml(l.tenLop || l.id)}')"
+                        style="padding:8px 14px;border:1.5px solid #e53e3e;border-radius:8px;
+                               background:#fff5f5;color:#e53e3e;font-family:inherit;font-weight:600;font-size:0.82rem;cursor:pointer;white-space:nowrap;">
+                    <i class="fas fa-undo-alt"></i> Thu hồi
+                </button>
+            </div>`;
+        })
+        .join('');
+}
+
+function thuHoiKhoiLop(lopId, tenLop) {
+    thuHoiLopHienTai = { lopId, tenLop };
+    const el = document.getElementById('confirmThuHoiTenLop');
+    if (el) el.textContent = tenLop || lopId;
+    moModal('modalConfirmThuHoi');
+}
+
+async function thucHienThuHoi() {
+    if (!thuHoiDeThiId || !thuHoiLopHienTai || !kiemTraXacThuc()) return;
+    const { lopId } = thuHoiLopHienTai;
+    const btn = document.getElementById('btnXacNhanThuHoi');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý…'; }
+    try {
+        const res = await apiPost(`${API_BASE}/${encodeURIComponent(thuHoiDeThiId)}/thu-hoi-cho-lop`, { lopHocId: lopId });
+        dongModal('modalConfirmThuHoi');
+        if (!res.success) {
+            showToast(res.message || 'Thu hồi thất bại.', 'error');
+            return;
+        }
+        showToast(res.message || 'Đã thu hồi.', 'success');
+        thuHoiLopHienTai = null;
+        // Tải lại danh sách lớp trong modal
+        await moModalThuHoi(thuHoiDeThiId);
+        // Reload bảng để ẩn/hiện nút Thu hồi nếu không còn lớp nào
+        taiDanhSachDeThi();
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> Thu hồi'; }
+    }
+}
+
+// ============================================================
+// MODAL: LINK THAM GIA CÔNG KHAI
+// ============================================================
+function capNhatGiaoDienModalLink(dto) {
+    const inp = document.getElementById('inputLinkThamGiaFull');
+    const st = document.getElementById('linkThamGiaTrangThai');
+    const btnTao = document.getElementById('btnTaoLinkThamGia');
+    const btnCopy = document.getElementById('btnSaoChepLinkThamGia');
+    const btnThuHoi = document.getElementById('btnThuHoiLinkThamGia');
+    const btnSinhMoi = document.getElementById('btnSinhMaLinkMoi');
+    const co = dto && dto.maTruyCap;
+    const full = co && dto.duongDanTuongDoi ? (window.location.origin + dto.duongDanTuongDoi) : '';
+    if (inp) inp.value = full;
+    if (st) st.textContent = co ? 'Link đang hoạt động. Có thể sao chép hoặc thu hồi.' : 'Chưa có link công khai — nhấn «Tạo link» để sinh mã.';
+    if (btnTao) btnTao.style.display = co ? 'none' : 'inline-flex';
+    if (btnCopy) btnCopy.disabled = !co;
+    if (btnThuHoi) btnThuHoi.disabled = !co;
+    if (btnSinhMoi) btnSinhMoi.disabled = !co;
+}
+
+async function moModalLinkThamGia(deThiId) {
+    if (!kiemTraXacThuc()) return;
+    linkThamGiaDeThiId = deThiId;
+    moModal('modalLinkThamGia');
+    capNhatGiaoDienModalLink(null);
+    const st = document.getElementById('linkThamGiaTrangThai');
+    if (st) st.textContent = 'Đang tải…';
+    try {
+        const res = await apiGet(`${API_BASE}/${encodeURIComponent(deThiId)}/link-tham-gia`);
+        if (!res.success) {
+            showToast(res.message || 'Không tải được trạng thái link.', 'error');
+            return;
+        }
+        capNhatGiaoDienModalLink(res.data);
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+        capNhatGiaoDienModalLink(null);
+    }
+}
+
+async function thucHienTaoLinkThamGia(taoMoi) {
+    if (!linkThamGiaDeThiId || !kiemTraXacThuc()) return;
+    try {
+        const res = await apiPost(
+            `${API_BASE}/${encodeURIComponent(linkThamGiaDeThiId)}/tao-link-tham-gia`,
+            { taoMoi: !!taoMoi }
+        );
+        if (!res.success) {
+            showToast(res.message || 'Không tạo được link.', 'error');
+            return;
+        }
+        showToast(taoMoi ? 'Đã sinh mã mới.' : 'Đã tạo link tham gia.', 'success');
+        capNhatGiaoDienModalLink(res.data);
+        taiDanhSachDeThi();
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
+}
+
+function xacNhanSinhMaLinkMoi() {
+    if (!confirm('Sinh mã mới sẽ vô hiệu hóa link cũ. Người đang giữ link cũ sẽ không vào được đề. Tiếp tục?')) return;
+    thucHienTaoLinkThamGia(true);
+}
+
+async function saoChepLinkThamGia() {
+    const inp = document.getElementById('inputLinkThamGiaFull');
+    const t = inp ? inp.value.trim() : '';
+    if (!t) {
+        showToast('Chưa có link để sao chép.', 'error');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(t);
+        showToast('Đã sao chép vào clipboard.', 'success');
+    } catch (_) {
+        showToast('Trình duyệt không cho phép sao chép tự động.', 'error');
+    }
+}
+
+async function thuHoiLinkThamGia() {
+    if (!linkThamGiaDeThiId || !kiemTraXacThuc()) return;
+    if (!confirm('Thu hồi link? Mọi người sẽ không còn mở được đề qua link này.')) return;
+    try {
+        const res = await apiDelete(`${API_BASE}/${encodeURIComponent(linkThamGiaDeThiId)}/link-tham-gia`);
+        if (!res.success) {
+            showToast(res.message || 'Thu hồi thất bại.', 'error');
+            return;
+        }
+        showToast(res.message || 'Đã thu hồi link.', 'success');
+        capNhatGiaoDienModalLink(null);
+        taiDanhSachDeThi();
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
 }
 
 function badgeTrangThai(trangThai, daBiXoa) {
@@ -296,6 +595,9 @@ function moModalTao() {
     document.getElementById('modalDeThiTitle').innerHTML =
         '<i class="fas fa-plus-circle" style="color:#667eea;margin-right:8px;"></i>Tạo Đề Thi Mới';
     resetFormDeThi();
+    // Hiện khu vực import trong modal
+    resetModalImportSection();
+    document.getElementById('importSection').style.display = '';
     moModal('modalDeThi');
 }
 
@@ -304,6 +606,10 @@ function moModalTao() {
 // ============================================================
 async function moModalSua(deThiId) {
     editingDeThiId = deThiId;
+    resetModalImportSection();
+    const impSec = document.getElementById('importSection');
+    if (impSec) impSec.style.display = 'none';
+
     document.getElementById('modalDeThiTitle').innerHTML =
         '<i class="fas fa-edit" style="color:#667eea;margin-right:8px;"></i>Chỉnh Sửa Đề Thi';
 
@@ -311,12 +617,16 @@ async function moModalSua(deThiId) {
     const d = danhSachDeThi.find(x => x.id === deThiId);
     if (d) {
         dienvaoFormDeThi(d);
+        await taiChuDeChoFormDeThi();
         moModal('modalDeThi');
     } else {
         try {
             const res = await apiGet(`${API_BASE}/${deThiId}`);
-            if (res.success) { dienvaoFormDeThi(res.data); moModal('modalDeThi'); }
-            else showToast(res.message || 'Không tìm thấy đề thi!', 'error');
+            if (res.success) {
+                dienvaoFormDeThi(res.data);
+                await taiChuDeChoFormDeThi();
+                moModal('modalDeThi');
+            } else showToast(res.message || 'Không tìm thấy đề thi!', 'error');
         } catch { showToast('Lỗi kết nối!', 'error'); }
     }
 }
@@ -325,24 +635,47 @@ function dienvaoFormDeThi(d) {
     document.getElementById('editDeThiId').value     = d.id;
     document.getElementById('inputTenDeThi').value   = d.tenDeThi || '';
     document.getElementById('inputMonHoc').value     = d.monHocId || '';
-    document.getElementById('inputThoiGian').value   = d.thoiGianPhut || '';
+    document.getElementById('inputThoiGian').value   = chonThoiGianPhutHopLe(d.thoiGianPhut);
     document.getElementById('inputMoTa').value       = d.moTa || '';
     document.getElementById('inputTrangThai').value  = d.trangThai || 'NHAP';
     document.getElementById('inputSoLan').value      = d.soLanThiToiDa || '';
     document.getElementById('inputThoiGianMo').value  = localDateTimeStr(d.thoiGianMo);
     document.getElementById('inputThoiGianDong').value = localDateTimeStr(d.thoiGianDong);
-    document.getElementById('inputTronCauHoi').checked = !!d.tronCauHoi;
-    document.getElementById('inputTronDapAn').checked  = !!d.tronDapAn;
 }
 
 function resetFormDeThi() {
-    ['inputTenDeThi','inputThoiGian','inputMoTa','inputSoLan','inputThoiGianMo','inputThoiGianDong']
+    ['inputTenDeThi','inputMoTa','inputSoLan','inputThoiGianMo','inputThoiGianDong']
         .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('inputThoiGian').value  = '60';
     document.getElementById('inputMonHoc').value    = '';
+    const cdForm = document.getElementById('inputChuDeDeThi');
+    if (cdForm) {
+        cdForm.innerHTML = '<option value="">-- Chọn môn học trước --</option>';
+        cdForm.disabled = true;
+    }
     document.getElementById('inputTrangThai').value = 'NHAP';
-    document.getElementById('inputTronCauHoi').checked = false;
-    document.getElementById('inputTronDapAn').checked  = false;
     clearErrors();
+}
+
+function resetModalImportSection() {
+    importedQuestions = [];
+    const dropZone = document.getElementById('modalImportDropZone');
+    const loading  = document.getElementById('modalImportLoading');
+    const preview  = document.getElementById('modalImportPreview');
+    if (dropZone) dropZone.style.display = '';
+    if (loading)  loading.style.display  = 'none';
+    if (preview)  preview.style.display  = 'none';
+    const fileInput = document.getElementById('modalImportFileInput');
+    if (fileInput) fileInput.value = '';
+    const chuDeSel = document.getElementById('modalImportChuDe');
+    if (chuDeSel) {
+        chuDeSel.innerHTML = '<option value="">-- Chọn chủ đề --</option>';
+        chuDeSel.disabled = true;
+    }
+    const errChuDe = document.getElementById('errModalImportChuDe');
+    if (errChuDe) errChuDe.textContent = '';
+    document.getElementById('modalImportDoKho').value = 'TRUNG_BINH';
+    document.getElementById('modalImportCauHoiList').innerHTML = '';
 }
 
 function clearErrors() {
@@ -353,10 +686,22 @@ function clearErrors() {
 }
 
 // ============================================================
-// LƯU ĐỀ THI (TẠO hoặc SỬA)
+// LƯU ĐỀ THI — Tạo mới hoặc Cập nhật + gắn câu import
 // ============================================================
 async function luuDeThi() {
     if (!validateFormDeThi()) return;
+
+    // Câu import: môn học dùng inputMonHoc (đã kiểm tra ở validateFormDeThi); bắt buộc chọn chủ đề
+    if (importedQuestions.length > 0) {
+        const chuDeId = document.getElementById('modalImportChuDe').value;
+        const errChuDe = document.getElementById('errModalImportChuDe');
+        if (errChuDe) errChuDe.textContent = '';
+        if (!chuDeId) {
+            if (errChuDe) errChuDe.textContent = 'Vui lòng chọn chủ đề cho câu import';
+            showToast('Vui lòng chọn chủ đề cho câu hỏi import.', 'error');
+            return;
+        }
+    }
 
     const payload = {
         tenDeThi:     document.getElementById('inputTenDeThi').value.trim(),
@@ -366,9 +711,7 @@ async function luuDeThi() {
         trangThai:    document.getElementById('inputTrangThai').value,
         soLanThiToiDa: parseInt(document.getElementById('inputSoLan').value) || null,
         thoiGianMo:   document.getElementById('inputThoiGianMo').value  || null,
-        thoiGianDong: document.getElementById('inputThoiGianDong').value || null,
-        tronCauHoi:   document.getElementById('inputTronCauHoi').checked,
-        tronDapAn:    document.getElementById('inputTronDapAn').checked
+        thoiGianDong: document.getElementById('inputThoiGianDong').value || null
     };
 
     const btn = document.getElementById('btnLuuDeThi');
@@ -376,22 +719,85 @@ async function luuDeThi() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
 
     try {
-        let res;
+        let deThiId;
+        let deThiCreatedData;
+
         if (editingDeThiId) {
-            res = await apiPut(`${API_BASE}/${editingDeThiId}`, payload);
+            // ── SỬA: chỉ gửi PUT, không import thêm ──
+            const res = await apiPut(`${API_BASE}/${editingDeThiId}`, payload);
+            if (!res.success) {
+                showToast(res.message || 'Lưu đề thi thất bại!', 'error');
+                return;
+            }
+            deThiId = editingDeThiId;
+            deThiCreatedData = res.data;
         } else {
-            res = await apiPost(API_BASE, payload);
+            // ── TẠO MỚI ──
+            const res = await apiPost(API_BASE, payload);
+            if (!res.success) {
+                showToast(res.message || 'Lưu đề thi thất bại!', 'error');
+                return;
+            }
+            deThiId = res.data?.id;
+            deThiCreatedData = res.data;
+
+            // ── Lưu câu hỏi import (nếu có) ──
+            if (importedQuestions.length > 0 && deThiId) {
+                const chuDeId  = document.getElementById('modalImportChuDe').value;
+                const doKho    = document.getElementById('modalImportDoKho').value;
+
+                const savedIds = [];
+                let failedImport = 0;
+
+                for (const ch of importedQuestions) {
+                    let dapAn = (ch.dapAnDung || '').toUpperCase();
+                    if (!['A','B','C','D'].includes(dapAn)) dapAn = 'A';
+
+                    const cauPayload = {
+                        noiDung:    ch.noiDung || `Câu hỏi ${ch.stt}`,
+                        chuDeId:    chuDeId,
+                        loaiCauHoi: 'TRAC_NGHIEM',
+                        doKho:      doKho,
+                        dapAnDung:  dapAn,
+                        luaChonA:   ch.luaChonA || null,
+                        luaChonB:   ch.luaChonB || null,
+                        luaChonC:   ch.luaChonC || null,
+                        luaChonD:   ch.luaChonD || null,
+                    };
+
+                    try {
+                        const r = await apiPost('/api/giao-vien/ngan-hang-cau-hoi', cauPayload);
+                        if (r.success && r.data?.id) {
+                            savedIds.push(r.data.id);
+                        } else {
+                            failedImport++;
+                        }
+                    } catch {
+                        failedImport++;
+                    }
+                }
+
+                // ── Gắn câu vào đề ──
+                if (savedIds.length > 0) {
+                    await apiPost(`${API_BASE}/${deThiId}/cau-hoi`, { cauHoiIds: savedIds });
+                }
+
+                if (failedImport > 0) {
+                    showToast(`Đã tạo đề. Có ${failedImport} câu import thất bại — vui lòng thêm thủ công.`, 'warn');
+                }
+            }
         }
 
-        if (res.success) {
-            showToast(res.message || 'Lưu đề thi thành công!', 'success');
-            dongModal('modalDeThi');
-            await taiDanhSachDeThi();
-        } else {
-            showToast(res.message || 'Lưu đề thi thất bại!', 'error');
-        }
-    } catch { showToast('Lỗi kết nối server!', 'error'); }
-    finally {
+        showToast(editingDeThiId ? 'Cập nhật đề thi thành công!' : 'Tạo đề thi thành công!', 'success');
+        dongModal('modalDeThi');
+        importedQuestions = [];
+        resetModalImportSection();
+        await taiDanhSachDeThi();
+
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối server!', 'error');
+    } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save"></i> Lưu Đề Thi';
     }
@@ -477,32 +883,26 @@ async function xacNhanXoaHan() {
 }
 
 // ============================================================
-// IMPORT FILE
+// IMPORT — XỬ LÝ TRONG MODAL TẠO ĐỀ
 // ============================================================
-function moModalImport() {
-    document.getElementById('importPreview').style.display   = 'none';
-    document.getElementById('importLoading').style.display   = 'none';
-    document.getElementById('btnLuuImport').style.display    = 'none';
-    document.getElementById('importDropZone').style.display  = 'block';
-    importedQuestions = [];
-    moModal('modalImport');
+
+function handleModalImportFile(input) {
+    const file = input.files ? input.files[0] : input;
+    if (!file) return;
+    xuLyModalImport(file);
 }
 
-function handleImportFile(input) {
-    const file = input.files[0];
-    if (file) xuLyFileImport(file);
-}
-
-async function xuLyFileImport(file) {
+async function xuLyModalImport(file) {
     const allowedExts = ['.pdf', '.docx', '.doc'];
     const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
     if (!allowedExts.includes(ext)) {
-        showToast('Chỉ hỗ trợ file PDF và DOCX!', 'error'); return;
+        showToast('Chỉ hỗ trợ file PDF và DOCX!', 'error');
+        return;
     }
 
-    document.getElementById('importDropZone').style.display  = 'none';
-    document.getElementById('importLoading').style.display   = 'block';
-    document.getElementById('importPreview').style.display   = 'none';
+    document.getElementById('modalImportDropZone').style.display = 'none';
+    document.getElementById('modalImportLoading').style.display = 'block';
+    document.getElementById('modalImportPreview').style.display = 'none';
 
     const formData = new FormData();
     formData.append('file', file);
@@ -515,237 +915,98 @@ async function xuLyFileImport(file) {
         });
         const data = await res.json();
 
-        document.getElementById('importLoading').style.display = 'none';
+        document.getElementById('modalImportLoading').style.display = 'none';
 
         if (data.success && data.data) {
-            const ketQua = data.data;
-            importedQuestions = ketQua.cauHoiList || [];
-            hienThiPreviewImport(ketQua);
+            importedQuestions = data.data.cauHoiList || [];
+            hienThiModalImportPreview(data.data);
         } else {
             showToast(data.message || 'Phân tích file thất bại!', 'error');
-            document.getElementById('importDropZone').style.display = 'block';
+            document.getElementById('modalImportDropZone').style.display = '';
         }
     } catch (err) {
-        document.getElementById('importLoading').style.display  = 'none';
-        document.getElementById('importDropZone').style.display = 'block';
+        document.getElementById('modalImportLoading').style.display = 'none';
+        document.getElementById('modalImportDropZone').style.display = '';
         showToast('Lỗi kết nối server!', 'error');
         console.error(err);
     }
 }
 
-function hienThiPreviewImport(ketQua) {
-    const previewDiv  = document.getElementById('importPreview');
-    const previewList = document.getElementById('importPreviewList');
-    const titleEl     = document.getElementById('importPreviewTitle');
-    const countEl     = document.getElementById('importPreviewCount');
+function hienThiModalImportPreview(ketQua) {
+    const count = importedQuestions.length;
+    document.getElementById('modalImportCount').textContent = count;
+    document.getElementById('modalImportPreview').style.display = '';
 
-    titleEl.textContent  = ketQua.message || '';
-    countEl.textContent  = ketQua.tongSoCauHoi || 0;
+    taiChuDeVaoModalImport().catch(err => console.error(err));
 
-    previewList.innerHTML = (ketQua.cauHoiList || []).map(ch => `
-        <div class="import-preview-item">
-            <h4>Câu ${ch.stt}: ${escHtml(ch.noiDung || '')}</h4>
-            ${ch.luaChonA ? `<div class="import-option-row"><span class="option-label">A.</span><span>${escHtml(ch.luaChonA)}</span></div>` : ''}
-            ${ch.luaChonB ? `<div class="import-option-row"><span class="option-label">B.</span><span>${escHtml(ch.luaChonB)}</span></div>` : ''}
-            ${ch.luaChonC ? `<div class="import-option-row"><span class="option-label">C.</span><span>${escHtml(ch.luaChonC)}</span></div>` : ''}
-            ${ch.luaChonD ? `<div class="import-option-row"><span class="option-label">D.</span><span>${escHtml(ch.luaChonD)}</span></div>` : ''}
-            ${ch.dapAnDung ? `<div style="margin-top:6px;font-size:0.82rem;"><span class="correct-answer">✓ Đáp án: ${escHtml(ch.dapAnDung)}</span></div>` : ''}
+    // Preview
+    const listEl = document.getElementById('modalImportCauHoiList');
+    listEl.innerHTML = importedQuestions.map((ch, idx) => `
+        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e2e8f0;${idx === importedQuestions.length - 1 ? 'border-bottom:none;' : ''}">
+            <div style="font-size:0.85rem;font-weight:500;color:#2d3748;">Câu ${ch.stt || (idx + 1)}: ${escHtml(ch.noiDung || '')}</div>
+            ${ch.luaChonA ? '<div style="font-size:0.78rem;color:#4a5568;padding-left:10px;">A. ' + escHtml(ch.luaChonA) + '</div>' : ''}
+            ${ch.luaChonB ? '<div style="font-size:0.78rem;color:#4a5568;padding-left:10px;">B. ' + escHtml(ch.luaChonB) + '</div>' : ''}
+            ${ch.luaChonC ? '<div style="font-size:0.78rem;color:#4a5568;padding-left:10px;">C. ' + escHtml(ch.luaChonC) + '</div>' : ''}
+            ${ch.luaChonD ? '<div style="font-size:0.78rem;color:#4a5568;padding-left:10px;">D. ' + escHtml(ch.luaChonD) + '</div>' : ''}
+            ${ch.dapAnDung ? '<div style="font-size:0.75rem;color:#38a169;margin-top:3px;">&#10003; Đáp án: ' + escHtml(ch.dapAnDung) + '</div>' : ''}
         </div>
     `).join('');
-
-    previewDiv.style.display = 'block';
-    document.getElementById('btnLuuImport').style.display = ketQua.tongSoCauHoi > 0 ? 'inline-flex' : 'none';
 }
 
-// Mở modal cấu hình lưu → thay vì redirect, cho user chọn môn/chủ đề rồi lưu thực sự
-async function luuCauHoiImport() {
-    if (importedQuestions.length === 0) {
-        showToast('Không có câu hỏi nào để lưu!', 'error');
-        return;
-    }
-
-    // Hiện số lượng câu sẽ lưu
-    document.getElementById('importSummaryCount').textContent = importedQuestions.length;
-
-    // Reset form + progress
-    document.getElementById('importMonHoc').value = '';
-    document.getElementById('importChuDe').value  = '';
-    document.getElementById('importChuDe').disabled = true;
-    document.getElementById('importDoKho').value  = 'TRUNG_BINH';
-    document.getElementById('importAutoFillAnswer').checked = true;
-    document.getElementById('errImportMonHoc').textContent  = '';
-    document.getElementById('errImportChuDe').textContent   = '';
-    document.getElementById('importProgressWrap').style.display = 'none';
-    document.getElementById('importProgressResult').innerHTML   = '';
-    document.getElementById('btnXacNhanLuuImport').disabled = false;
-    document.getElementById('btnXacNhanLuuImport').innerHTML = '<i class="fas fa-save"></i> Lưu Câu Hỏi';
-    document.getElementById('btnHuyLuuImport').disabled = false;
-
-    // Nạp danh sách môn học vào select (dùng API ngân hàng câu hỏi)
-    await taiMonHocChoImport();
-
-    moModal('modalLuuImport');
+function huyModalImport() {
+    importedQuestions = [];
+    document.getElementById('modalImportPreview').style.display = 'none';
+    document.getElementById('modalImportDropZone').style.display = '';
+    const fi = document.getElementById('modalImportFileInput');
+    if (fi) fi.value = '';
 }
 
-async function taiMonHocChoImport() {
-    try {
-        const res = await apiGet('/api/giao-vien/ngan-hang-cau-hoi/mon-hoc');
-        if (!res.success) return;
-        const sel = document.getElementById('importMonHoc');
-        // Giữ placeholder đầu tiên
-        sel.innerHTML = '<option value="">-- Chọn môn học --</option>';
-        (res.data || []).forEach(mh => sel.appendChild(new Option(mh.ten, mh.id)));
-    } catch (err) { console.error('Lỗi tải môn học:', err); }
-}
-
-async function onImportMonHocChange() {
-    const monHocId = document.getElementById('importMonHoc').value;
-    const chuDeEl  = document.getElementById('importChuDe');
-    document.getElementById('errImportMonHoc').textContent = '';
+/** Dropdown chủ đề trên form đề thi — theo môn học đã chọn */
+async function taiChuDeChoFormDeThi() {
+    const monHocId = document.getElementById('inputMonHoc').value;
+    const sel = document.getElementById('inputChuDeDeThi');
+    if (!sel) return;
 
     if (!monHocId) {
-        chuDeEl.innerHTML  = '<option value="">-- Chọn chủ đề --</option>';
-        chuDeEl.disabled   = true;
+        sel.innerHTML = '<option value="">-- Chọn môn học trước --</option>';
+        sel.disabled = true;
         return;
     }
 
+    const prev = sel.value;
     try {
         const res = await apiGet(`/api/giao-vien/ngan-hang-cau-hoi/chu-de?monHocId=${encodeURIComponent(monHocId)}`);
-        chuDeEl.innerHTML  = '<option value="">-- Chọn chủ đề --</option>';
-        chuDeEl.disabled   = false;
+        sel.innerHTML = '<option value="">-- Chọn chủ đề --</option>';
+        sel.disabled = false;
         if (res.success) {
-            (res.data || []).forEach(cd => chuDeEl.appendChild(new Option(cd.ten, cd.id)));
+            (res.data || []).forEach(cd => sel.appendChild(new Option(cd.ten, cd.id)));
+        }
+        if (prev && [...sel.options].some(o => o.value === prev)) {
+            sel.value = prev;
         }
     } catch (err) {
-        chuDeEl.disabled = false;
+        sel.disabled = false;
         console.error('Lỗi tải chủ đề:', err);
     }
 }
 
-async function xacNhanLuuImport() {
-    // Validate
-    const chuDeId  = document.getElementById('importChuDe').value;
-    const monHocId = document.getElementById('importMonHoc').value;
-    const doKho    = document.getElementById('importDoKho').value;
-    const autoFill = document.getElementById('importAutoFillAnswer').checked;
-
-    document.getElementById('errImportMonHoc').textContent = '';
-    document.getElementById('errImportChuDe').textContent  = '';
-
-    if (!monHocId) {
-        document.getElementById('errImportMonHoc').textContent = 'Vui lòng chọn môn học';
-        return;
+/** Đồng bộ select chủ đề trong khu import với form phía trên */
+function syncImportChuDeSelectFromForm() {
+    const src = document.getElementById('inputChuDeDeThi');
+    const dst = document.getElementById('modalImportChuDe');
+    if (!src || !dst) return;
+    const v = src.value;
+    dst.innerHTML = src.innerHTML;
+    dst.disabled = src.disabled;
+    if (v && [...dst.options].some(o => o.value === v)) {
+        dst.value = v;
     }
-    if (!chuDeId) {
-        document.getElementById('errImportChuDe').textContent = 'Vui lòng chọn chủ đề';
-        return;
-    }
+}
 
-    const total = importedQuestions.length;
-
-    // Khoá nút, hiện progress
-    const btnLuu = document.getElementById('btnXacNhanLuuImport');
-    const btnHuy = document.getElementById('btnHuyLuuImport');
-    btnLuu.disabled = true;
-    btnHuy.disabled = true;
-    btnLuu.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
-
-    const progressWrap = document.getElementById('importProgressWrap');
-    const progressBar  = document.getElementById('importProgressBar');
-    const progressText = document.getElementById('importProgressText');
-    const progressResult = document.getElementById('importProgressResult');
-    progressWrap.style.display = 'block';
-    progressResult.innerHTML   = '';
-
-    let saved = 0;
-    let failed = 0;
-    const errors = [];
-
-    for (let i = 0; i < total; i++) {
-        const ch = importedQuestions[i];
-
-        // Đảm bảo đáp án hợp lệ
-        let dapAn = (ch.dapAnDung || '').toUpperCase();
-        if (!['A','B','C','D'].includes(dapAn)) {
-            dapAn = autoFill ? 'A' : null;
-        }
-
-        if (!dapAn) {
-            failed++;
-            errors.push(`Câu ${ch.stt}: thiếu đáp án — bỏ qua`);
-            continue;
-        }
-
-        const payload = {
-            noiDung:    ch.noiDung || `Câu hỏi ${ch.stt}`,
-            chuDeId:    chuDeId,
-            loaiCauHoi: 'TRAC_NGHIEM',
-            doKho:      doKho,
-            dapAnDung:  dapAn,
-            luaChonA:   ch.luaChonA || null,
-            luaChonB:   ch.luaChonB || null,
-            luaChonC:   ch.luaChonC || null,
-            luaChonD:   ch.luaChonD || null,
-        };
-
-        try {
-            const res = await apiPost('/api/giao-vien/ngan-hang-cau-hoi', payload);
-            if (res.success) {
-                saved++;
-            } else {
-                failed++;
-                errors.push(`Câu ${ch.stt}: ${res.message || 'Lỗi không xác định'}`);
-            }
-        } catch (e) {
-            failed++;
-            errors.push(`Câu ${ch.stt}: Lỗi kết nối`);
-        }
-
-        // Cập nhật progress
-        const pct = Math.round(((i + 1) / total) * 100);
-        progressBar.style.width  = pct + '%';
-        progressText.textContent = `${i + 1} / ${total}`;
-    }
-
-    // Hiện kết quả
-    let resultHtml = '';
-    if (saved > 0) {
-        resultHtml += `<div style="color:#276749;font-weight:600;"><i class="fas fa-check-circle"></i> Đã lưu thành công: ${saved} câu hỏi</div>`;
-    }
-    if (failed > 0) {
-        resultHtml += `<div style="color:#9b2c2c;font-weight:600;margin-top:6px;"><i class="fas fa-times-circle"></i> Lỗi: ${failed} câu hỏi</div>`;
-        if (errors.length > 0) {
-            resultHtml += `<ul style="margin:6px 0 0 16px;font-size:0.8rem;color:#718096;">` +
-                errors.map(e => `<li>${escHtml(e)}</li>`).join('') + `</ul>`;
-        }
-    }
-    progressResult.innerHTML = resultHtml;
-
-    // Reset nút
-    btnLuu.disabled = false;
-    btnHuy.disabled = false;
-    btnLuu.innerHTML = '<i class="fas fa-check"></i> Hoàn Tất';
-    btnLuu.onclick = () => {
-        dongModal('modalLuuImport');
-        dongModal('modalImport');
-        // Reset file input
-        const fi = document.getElementById('importFileInput');
-        if (fi) fi.value = '';
-        importedQuestions = [];
-        if (saved > 0) {
-            showToast(`Đã lưu ${saved} câu hỏi vào ngân hàng thành công!`, 'success');
-        }
-    };
-    btnHuy.onclick = () => dongModal('modalLuuImport');
-
-    // Toast tổng kết
-    if (saved === total) {
-        showToast(`Lưu thành công tất cả ${saved} câu hỏi!`, 'success');
-    } else if (saved > 0) {
-        showToast(`Lưu ${saved}/${total} câu — ${failed} câu thất bại.`, 'info');
-    } else {
-        showToast('Không lưu được câu hỏi nào. Kiểm tra lại!', 'error');
-    }
+/** Tải chủ đề lên form rồi copy sang ô import (một nguồn dữ liệu) */
+async function taiChuDeVaoModalImport() {
+    await taiChuDeChoFormDeThi();
+    syncImportChuDeSelectFromForm();
 }
 
 // ============================================================
@@ -796,322 +1057,4 @@ function localDateTimeStr(dateStr) {
         const pad = n => n.toString().padStart(2, '0');
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     } catch { return ''; }
-}
-
-// ============================================================
-// QUẢN LÝ CÂU HỎI TRONG ĐỀ THI
-// ============================================================
-let currentDeThiId   = null;   // ID đề đang quản lý
-let sortableInstance = null;   // SortableJS instance
-let bankFilterTimer  = null;   // debounce timer cho filter ngân hàng
-let daDuocChon       = new Set(); // set cauHoiId đang checked ở ngân hàng
-
-// ── Mở modal quản lý câu hỏi ──────────────────────────────
-async function moModalCauHoiDeThi(deThiId, tenDeThi) {
-    currentDeThiId = deThiId;
-    daDuocChon     = new Set();
-
-    document.getElementById('modalCauHoiTenDe').textContent = tenDeThi;
-    document.getElementById('modalCauHoiCount').textContent = '';
-
-    // Reset panels
-    document.getElementById('cauHoiTrongDeList').innerHTML =
-        '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
-    document.getElementById('nganHangList').innerHTML =
-        '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
-    document.getElementById('chkAll').checked   = false;
-    document.getElementById('chonCount').textContent = '';
-
-    // Reset filter ngân hàng
-    document.getElementById('bankMonHoc').value  = '';
-    document.getElementById('bankChuDe').value   = '';
-    document.getElementById('bankDoKho').value   = '';
-    document.getElementById('bankKeyword').value = '';
-
-    moModal('modalCauHoiDeThi');
-
-    // Load parallel
-    await Promise.all([
-        loadCauHoiTrongDe(),
-        khoiTaoMonHocNganHang(),
-    ]);
-    await loadNganHang();
-}
-
-function dongModalCauHoi() {
-    dongModal('modalCauHoiDeThi');
-    // Reload bảng đề thi để cập nhật số câu hỏi
-    taiDanhSachDeThi();
-}
-
-// ── Tải câu hỏi đang có trong đề ──────────────────────────
-async function loadCauHoiTrongDe() {
-    try {
-        const res = await apiGet(`${API_BASE}/${currentDeThiId}/cau-hoi`);
-        if (!res.success) { showToast(res.message || 'Lỗi tải câu hỏi!', 'error'); return; }
-
-        renderCauHoiTrongDe(res.data || []);
-    } catch { showToast('Lỗi kết nối!', 'error'); }
-}
-
-function renderCauHoiTrongDe(list) {
-    const container = document.getElementById('cauHoiTrongDeList');
-    document.getElementById('deCount').textContent = list.length;
-    document.getElementById('modalCauHoiCount').textContent = `${list.length} câu`;
-
-    if (list.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-inbox"></i>
-                Chưa có câu hỏi nào.<br>
-                <small>Chọn câu hỏi từ ngân hàng bên phải để thêm.</small>
-            </div>`;
-        initSortable([]);
-        return;
-    }
-
-    container.innerHTML = list.map(c => `
-        <div class="cau-hoi-card" data-cau-hoi-id="${c.cauHoiId}">
-            <div class="card-top">
-                <span class="card-stt">${c.thuTu}</span>
-                <div class="card-content">
-                    <div class="card-question">${escHtml(truncateCH(c.noiDung || '', 120))}</div>
-                    <div class="card-meta">
-                        ${badgeDoKhoSmall(c.doKho)}
-                        <span style="font-size:0.75rem;color:#718096;">${escHtml(c.tenChuDe || '')} · ${escHtml(c.tenMonHoc || '')}</span>
-                        ${c.dapAnDung ? `<span style="font-size:0.75rem;font-weight:700;color:#667eea;">ĐA: ${escHtml(c.dapAnDung)}</span>` : ''}
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <span class="drag-handle" title="Kéo để sắp xếp"><i class="fas fa-grip-vertical"></i></span>
-                    <button class="btn-icon btn-icon-delete" style="width:26px;height:26px;font-size:0.75rem;"
-                            title="Xóa khỏi đề" onclick="xoaCauHoiKhoiDe('${c.cauHoiId}')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-
-    initSortable(list);
-}
-
-function initSortable(list) {
-    const el = document.getElementById('cauHoiTrongDeList');
-    if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
-    if (list.length === 0) return;
-
-    sortableInstance = Sortable.create(el, {
-        animation: 150,
-        handle:    '.drag-handle',
-        ghostClass:'sortable-ghost',
-        onEnd: () => {
-            // Cập nhật số thứ tự hiển thị sau khi kéo
-            const cards = el.querySelectorAll('.cau-hoi-card');
-            cards.forEach((card, i) => {
-                const stt = card.querySelector('.card-stt');
-                if (stt) stt.textContent = i + 1;
-            });
-        }
-    });
-}
-
-// ── Xóa câu hỏi khỏi đề ───────────────────────────────────
-async function xoaCauHoiKhoiDe(cauHoiId) {
-    try {
-        const res = await apiDelete(`${API_BASE}/${currentDeThiId}/cau-hoi/${cauHoiId}`);
-        if (res.success) {
-            showToast('Đã xóa câu hỏi khỏi đề!', 'success');
-            await Promise.all([loadCauHoiTrongDe(), loadNganHang()]);
-        } else {
-            showToast(res.message || 'Xóa thất bại!', 'error');
-        }
-    } catch { showToast('Lỗi kết nối!', 'error'); }
-}
-
-// ── Lưu thứ tự sau khi kéo thả ────────────────────────────
-async function luuThuTu() {
-    const cards = document.querySelectorAll('#cauHoiTrongDeList .cau-hoi-card');
-    const orderedIds = Array.from(cards).map(c => c.dataset.cauHoiId);
-
-    if (orderedIds.length === 0) { showToast('Không có câu hỏi để sắp xếp!', 'info'); return; }
-
-    try {
-        const res = await fetch(`${API_BASE}/${currentDeThiId}/cau-hoi/thu-tu`, {
-            method: 'PUT',
-            headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderedIds)
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast('Đã lưu thứ tự câu hỏi!', 'success');
-            await loadCauHoiTrongDe();
-        } else {
-            showToast(data.message || 'Lưu thứ tự thất bại!', 'error');
-        }
-    } catch { showToast('Lỗi kết nối!', 'error'); }
-}
-
-// ── Ngân hàng câu hỏi (panel phải) ───────────────────────
-async function khoiTaoMonHocNganHang() {
-    try {
-        const res = await apiGet('/api/giao-vien/ngan-hang-cau-hoi/mon-hoc');
-        if (!res.success) return;
-        const sel = document.getElementById('bankMonHoc');
-        sel.innerHTML = '<option value="">Tất cả môn</option>';
-        (res.data || []).forEach(mh => sel.appendChild(new Option(mh.ten, mh.id)));
-    } catch (e) { console.error(e); }
-}
-
-async function onBankMonHocChange() {
-    const monHocId = document.getElementById('bankMonHoc').value;
-    const chuDeEl  = document.getElementById('bankChuDe');
-    chuDeEl.innerHTML = '<option value="">Tất cả chủ đề</option>';
-
-    if (monHocId) {
-        try {
-            const res = await apiGet(`/api/giao-vien/ngan-hang-cau-hoi/chu-de?monHocId=${encodeURIComponent(monHocId)}`);
-            if (res.success) {
-                (res.data || []).forEach(cd => chuDeEl.appendChild(new Option(cd.ten, cd.id)));
-            }
-        } catch (e) { console.error(e); }
-    }
-    await loadNganHang();
-}
-
-function debounceBankFilter() {
-    clearTimeout(bankFilterTimer);
-    bankFilterTimer = setTimeout(loadNganHang, 300);
-}
-
-async function loadNganHang() {
-    if (!currentDeThiId) return;
-    const monHocId = document.getElementById('bankMonHoc').value   || '';
-    const chuDeId  = document.getElementById('bankChuDe').value    || '';
-    const doKho    = document.getElementById('bankDoKho').value    || '';
-    const keyword  = document.getElementById('bankKeyword').value  || '';
-
-    let url = `${API_BASE}/${currentDeThiId}/cau-hoi/ngan-hang?`;
-    if (monHocId) url += `monHocId=${encodeURIComponent(monHocId)}&`;
-    if (chuDeId)  url += `chuDeId=${encodeURIComponent(chuDeId)}&`;
-    if (doKho)    url += `doKho=${encodeURIComponent(doKho)}&`;
-    if (keyword)  url += `keyword=${encodeURIComponent(keyword)}&`;
-
-    try {
-        const res = await apiGet(url);
-        if (!res.success) { showToast(res.message || 'Lỗi tải ngân hàng!', 'error'); return; }
-        renderNganHang(res.data || []);
-    } catch { showToast('Lỗi kết nối!', 'error'); }
-}
-
-function renderNganHang(list) {
-    const container = document.getElementById('nganHangList');
-    document.getElementById('bankCount').textContent = list.length;
-    document.getElementById('chkAll').checked = false;
-    daDuocChon = new Set();
-    capNhatChonCount();
-
-    if (list.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-search"></i>
-                Không tìm thấy câu hỏi phù hợp.<br>
-                <small>Thử thay đổi bộ lọc hoặc thêm câu hỏi mới vào ngân hàng.</small>
-            </div>`;
-        return;
-    }
-
-    container.innerHTML = list.map(c => `
-        <div class="bank-card" onclick="toggleChon(this, '${c.id}')">
-            <input type="checkbox" class="bank-chk" data-id="${c.id}" onclick="event.stopPropagation();toggleChonCheckbox(this,'${c.id}')">
-            <div class="bank-card-text">
-                <div class="bank-card-q">${escHtml(truncateCH(c.noiDung || '', 110))}</div>
-                <div class="bank-card-meta">
-                    ${badgeDoKhoSmall(c.doKho)}
-                    ${escHtml(c.tenChuDe || '')} · ${escHtml(c.tenMonHoc || '')}
-                    ${c.dapAnDung ? `· <span style="font-weight:700;color:#667eea;">ĐA: ${escHtml(c.dapAnDung)}</span>` : ''}
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function toggleChon(cardEl, cauHoiId) {
-    const chk = cardEl.querySelector('.bank-chk');
-    if (!chk) return;
-    chk.checked = !chk.checked;
-    toggleChonCheckbox(chk, cauHoiId);
-}
-
-function toggleChonCheckbox(chk, cauHoiId) {
-    const card = chk.closest('.bank-card');
-    if (chk.checked) {
-        daDuocChon.add(cauHoiId);
-        card.classList.add('selected');
-    } else {
-        daDuocChon.delete(cauHoiId);
-        card.classList.remove('selected');
-    }
-    capNhatChonCount();
-    // Đồng bộ "chọn tất cả"
-    const allChk = document.querySelectorAll('.bank-chk');
-    const allChecked = Array.from(allChk).every(c => c.checked);
-    document.getElementById('chkAll').checked = allChk.length > 0 && allChecked;
-}
-
-function toggleChonTatCa(masterChk) {
-    daDuocChon = new Set();
-    document.querySelectorAll('.bank-chk').forEach(chk => {
-        chk.checked = masterChk.checked;
-        const card = chk.closest('.bank-card');
-        if (masterChk.checked) {
-            daDuocChon.add(chk.dataset.id);
-            card.classList.add('selected');
-        } else {
-            card.classList.remove('selected');
-        }
-    });
-    capNhatChonCount();
-}
-
-function capNhatChonCount() {
-    const n = daDuocChon.size;
-    document.getElementById('chonCount').textContent = n > 0 ? `(Đã chọn ${n})` : '';
-}
-
-// ── Thêm câu hỏi đã chọn vào đề ──────────────────────────
-async function themCauHoiDaChon() {
-    if (daDuocChon.size === 0) {
-        showToast('Vui lòng chọn ít nhất 1 câu hỏi!', 'info'); return;
-    }
-
-    try {
-        const res = await apiPost(`${API_BASE}/${currentDeThiId}/cau-hoi`, {
-            cauHoiIds: Array.from(daDuocChon)
-        });
-
-        if (res.success) {
-            showToast(res.message || 'Thêm câu hỏi thành công!', 'success');
-            daDuocChon = new Set();
-            document.getElementById('chkAll').checked = false;
-            await Promise.all([loadCauHoiTrongDe(), loadNganHang()]);
-        } else {
-            showToast(res.message || 'Thêm thất bại!', 'error');
-        }
-    } catch { showToast('Lỗi kết nối!', 'error'); }
-}
-
-// ── Helpers display ────────────────────────────────────────
-function badgeDoKhoSmall(doKho) {
-    const map = { DE: '#d1fae5;color:#065f46', TRUNG_BINH: '#fef3c7;color:#92400e', KHO: '#fee2e2;color:#991b1b' };
-    const labels = { DE: '😊 Dễ', TRUNG_BINH: '😐 T.Bình', KHO: '😤 Khó' };
-    const style = map[doKho] || '';
-    const label = labels[doKho] || '';
-    return style
-        ? `<span style="background:${style};padding:1px 7px;border-radius:999px;font-size:0.72rem;font-weight:600;">${label}</span>`
-        : '';
-}
-
-function truncateCH(str, maxLen) {
-    return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
 }

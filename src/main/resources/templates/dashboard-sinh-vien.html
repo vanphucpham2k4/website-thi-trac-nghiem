@@ -46,15 +46,15 @@
                     <i class="fas fa-home"></i>
                     <span>Trang Chủ</span>
                 </a>
-                <a href="#" class="menu-item">
+                <a th:href="@{/dashboard/sinh-vien/lich-su-thi}" class="menu-item">
                     <i class="fas fa-file-alt"></i>
                     <span>Lịch Sử Thi</span>
                 </a>
-                <a href="#" class="menu-item">
-                    <i class="fas fa-trophy"></i>
-                    <span>Xếp Hạng</span>
+                <a th:href="@{/dashboard/sinh-vien/phong-thi}" class="menu-item">
+                    <i class="fas fa-door-open"></i>
+                    <span>Lớp/Phòng Thi</span>
                 </a>
-                <a href="#" class="menu-item">
+                <a th:href="@{/dashboard/sinh-vien/mon-hoc}" class="menu-item">
                     <i class="fas fa-book"></i>
                     <span>Môn Học</span>
                 </a>
@@ -136,14 +136,14 @@
                     </div>
                 </div>
 
-                <!-- Thẻ thống kê 4: Xếp hạng -->
+                <!-- Thẻ thống kê 4: Lớp/Phòng Thi (đang phát triển) -->
                 <div class="stat-card">
                     <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1, #3182ce);">
-                        <i class="fas fa-medal"></i>
+                        <i class="fas fa-door-open"></i>
                     </div>
                     <div class="stat-info">
-                        <span class="stat-number" id="statXepHang">-</span>
-                        <span class="stat-label">Xếp Hạng</span>
+                        <span class="stat-number" id="statPhongThi">—</span>
+                        <span class="stat-label">Lớp/Phòng Thi</span>
                     </div>
                 </div>
             </div>

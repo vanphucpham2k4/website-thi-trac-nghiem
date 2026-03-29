@@ -60,21 +60,48 @@ document.addEventListener('DOMContentLoaded', function () {
     // ====== 3. MENU — chuyển trang ======
     const pageDashboard = document.getElementById('pageDashboard');
     const pageNguoiDung = document.getElementById('pageNguoiDung');
+    const pageMonHoc = document.getElementById('pageMonHoc');
+    const pagePlaceholder = document.getElementById('pagePlaceholder');
     const mainPageTitle = document.getElementById('mainPageTitle');
     const menuItems = document.querySelectorAll('.menu-item[data-page]');
 
+    const PLACEHOLDER_MENU_TITLES = {
+        'de-thi': 'Quản Lý Đề Thi',
+        'cau-hoi': 'Quản Lý Câu Hỏi'
+    };
+
+    function hideAllMainPages() {
+        if (pageDashboard) pageDashboard.style.display = 'none';
+        if (pageNguoiDung) pageNguoiDung.style.display = 'none';
+        if (pageMonHoc) pageMonHoc.style.display = 'none';
+        if (pagePlaceholder) pagePlaceholder.style.display = 'none';
+    }
+
     function showPage(page) {
         if (page === 'dashboard') {
+            hideAllMainPages();
             if (pageDashboard) pageDashboard.style.display = '';
-            if (pageNguoiDung) pageNguoiDung.style.display = 'none';
             if (mainPageTitle) mainPageTitle.textContent = 'Dashboard Quản Trị';
             return;
         }
         if (page === 'nguoi-dung') {
-            if (pageDashboard) pageDashboard.style.display = 'none';
+            hideAllMainPages();
             if (pageNguoiDung) pageNguoiDung.style.display = '';
             if (mainPageTitle) mainPageTitle.textContent = 'Quản Lý Người Dùng';
             loadAdminUsers();
+            return;
+        }
+        if (page === 'mon-hoc') {
+            hideAllMainPages();
+            if (pageMonHoc) pageMonHoc.style.display = '';
+            if (mainPageTitle) mainPageTitle.textContent = 'Quản Lý Môn Học';
+            loadAdminMonHoc();
+            return;
+        }
+        if (PLACEHOLDER_MENU_TITLES[page]) {
+            hideAllMainPages();
+            if (pagePlaceholder) pagePlaceholder.style.display = '';
+            if (mainPageTitle) mainPageTitle.textContent = PLACEHOLDER_MENU_TITLES[page];
             return;
         }
         alert('Chức năng đang được phát triển.');
@@ -310,6 +337,228 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             loadAdminUsers();
+        } catch (e) {
+            console.error(e);
+            alert('Lỗi kết nối');
+        }
+    }
+
+    // ----- Quản lý môn học -----
+    let monHocCache = [];
+    let monHocModalMode = 'create';
+
+    function escapeHtml(s) {
+        if (s == null || s === '') return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function truncateText(s, maxLen) {
+        if (s == null || s === '') return '';
+        const t = String(s);
+        if (t.length <= maxLen) return t;
+        return t.substring(0, maxLen) + '…';
+    }
+
+    async function loadAdminMonHoc() {
+        const tbody = document.getElementById('adminMonHocTableBody');
+        const msg = document.getElementById('adminMonHocMsg');
+        if (msg) {
+            msg.hidden = true;
+            msg.textContent = '';
+            msg.className = 'admin-inline-msg';
+        }
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+        }
+        try {
+            const res = await fetch('/api/admin/mon-hoc', { headers: authHeadersJson() });
+            const json = await res.json();
+            if (res.status === 401) {
+                window.location.href = '/login/admin?expired=1';
+                return;
+            }
+            if (!json.success || !json.data) {
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#e53e3e;">' + escapeHtml(json.message || 'Không tải được danh sách') + '</td></tr>';
+                }
+                return;
+            }
+            monHocCache = json.data;
+            renderAdminMonHocTable(monHocCache);
+        } catch (err) {
+            console.error(err);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#e53e3e;">Lỗi kết nối</td></tr>';
+        }
+    }
+
+    function renderAdminMonHocTable(list) {
+        const tbody = document.getElementById('adminMonHocTableBody');
+        if (!tbody) return;
+        if (!list || list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#a0aec0; padding:24px;">Chưa có môn học</td></tr>';
+            return;
+        }
+        let html = '';
+        list.forEach(function (m) {
+            const desc = m.moTa ? truncateText(m.moTa, 120) : '';
+            const chuDes = Array.isArray(m.danhSachTenChuDe) ? m.danhSachTenChuDe : [];
+            const chuDeHtml = chuDes.length
+                ? '<span class="admin-mon-hoc-chu-de">' + chuDes.map(function (t) { return escapeHtml(t); }).join('<span class="admin-mon-hoc-chu-de-sep"> · </span>') + '</span>'
+                : '<span style="color:#a0aec0;font-size:0.88rem;">Chưa có chủ đề</span>';
+            html += '<tr>';
+            html += '<td><strong>' + escapeHtml(m.ten || '') + '</strong></td>';
+            html += '<td><span class="admin-mon-hoc-desc">' + (desc ? escapeHtml(desc) : '<span style="color:#a0aec0;">—</span>') + '</span></td>';
+            html += '<td>' + chuDeHtml + '</td>';
+            html += '<td><div class="admin-action-btns">';
+            const safeId = m.id ? String(m.id).replace(/"/g, '') : '';
+            html += '<button type="button" class="btn btn-sm btn-outline btn-view-mon-hoc" data-id="' + safeId + '"><i class="fas fa-eye"></i> Xem</button>';
+            html += '<button type="button" class="btn btn-sm btn-primary btn-edit-mon-hoc" data-id="' + safeId + '"><i class="fas fa-edit"></i> Sửa</button>';
+            html += '<button type="button" class="btn btn-sm btn-outline btn-del-mon-hoc" data-id="' + safeId + '" style="color:#e53e3e;border-color:#feb2b2;"><i class="fas fa-trash"></i> Xóa</button>';
+            html += '</div></td></tr>';
+        });
+        tbody.innerHTML = html;
+
+        tbody.querySelectorAll('.btn-view-mon-hoc').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                openMonHocModal('view', this.getAttribute('data-id'));
+            });
+        });
+        tbody.querySelectorAll('.btn-edit-mon-hoc').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                openMonHocModal('edit', this.getAttribute('data-id'));
+            });
+        });
+        tbody.querySelectorAll('.btn-del-mon-hoc').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                deleteMonHoc(this.getAttribute('data-id'));
+            });
+        });
+    }
+
+    function findMonHocById(id) {
+        return monHocCache.find(function (x) { return x.id === id; });
+    }
+
+    function setMonHocModalReadonly(ro) {
+        const ten = document.getElementById('monHocTen');
+        const moTa = document.getElementById('monHocMoTa');
+        const chuDeTa = document.getElementById('monHocChuDeTen');
+        const btnSave = document.getElementById('btnSaveMonHoc');
+        if (ten) {
+            if (ro) ten.setAttribute('readonly', 'readonly');
+            else ten.removeAttribute('readonly');
+        }
+        if (moTa) {
+            if (ro) moTa.setAttribute('readonly', 'readonly');
+            else moTa.removeAttribute('readonly');
+        }
+        if (chuDeTa) {
+            if (ro) chuDeTa.setAttribute('readonly', 'readonly');
+            else chuDeTa.removeAttribute('readonly');
+        }
+        if (btnSave) btnSave.style.display = ro ? 'none' : '';
+    }
+
+    function openMonHocModal(mode, id) {
+        monHocModalMode = mode;
+        const titleEl = document.getElementById('modalMonHocTitle');
+        const idEl = document.getElementById('monHocId');
+        const tenEl = document.getElementById('monHocTen');
+        const moTaEl = document.getElementById('monHocMoTa');
+        const chuDeTa = document.getElementById('monHocChuDeTen');
+        if (mode === 'create') {
+            if (titleEl) titleEl.textContent = 'Thêm môn học';
+            if (idEl) idEl.value = '';
+            if (tenEl) tenEl.value = '';
+            if (moTaEl) moTaEl.value = '';
+            if (chuDeTa) chuDeTa.value = '';
+            setMonHocModalReadonly(false);
+        } else {
+            const m = findMonHocById(id);
+            if (!m) return;
+            if (titleEl) titleEl.textContent = mode === 'view' ? 'Chi tiết môn học' : 'Sửa môn học';
+            if (idEl) idEl.value = m.id;
+            if (tenEl) tenEl.value = m.ten || '';
+            if (moTaEl) moTaEl.value = m.moTa || '';
+            if (chuDeTa) {
+                const lines = Array.isArray(m.danhSachTenChuDe) ? m.danhSachTenChuDe : [];
+                chuDeTa.value = lines.join('\n');
+            }
+            setMonHocModalReadonly(mode === 'view');
+        }
+        document.getElementById('modalMonHoc').style.display = 'flex';
+    }
+
+    function closeMonHocModal() {
+        document.getElementById('modalMonHoc').style.display = 'none';
+        setMonHocModalReadonly(false);
+    }
+
+    document.getElementById('btnReloadMonHoc') && document.getElementById('btnReloadMonHoc').addEventListener('click', function () {
+        loadAdminMonHoc();
+    });
+    document.getElementById('btnAddMonHoc') && document.getElementById('btnAddMonHoc').addEventListener('click', function () {
+        openMonHocModal('create');
+    });
+    document.getElementById('modalMonHocClose') && document.getElementById('modalMonHocClose').addEventListener('click', closeMonHocModal);
+    document.getElementById('btnCancelMonHoc') && document.getElementById('btnCancelMonHoc').addEventListener('click', closeMonHocModal);
+
+    document.getElementById('btnSaveMonHoc') && document.getElementById('btnSaveMonHoc').addEventListener('click', async function () {
+        if (monHocModalMode === 'view') return;
+        const id = document.getElementById('monHocId').value;
+        const body = {
+            ten: document.getElementById('monHocTen').value.trim(),
+            moTa: document.getElementById('monHocMoTa').value.trim(),
+            tenChuDeTheoDong: document.getElementById('monHocChuDeTen')
+                ? document.getElementById('monHocChuDeTen').value
+                : ''
+        };
+        const isCreate = !id;
+        const url = isCreate ? '/api/admin/mon-hoc' : '/api/admin/mon-hoc/' + encodeURIComponent(id);
+        try {
+            const res = await fetch(url, {
+                method: isCreate ? 'POST' : 'PUT',
+                headers: authHeadersJson(),
+                body: JSON.stringify(body)
+            });
+            const json = await res.json();
+            if (res.status === 401) {
+                window.location.href = '/login/admin?expired=1';
+                return;
+            }
+            if (!json.success) {
+                alert(json.message || 'Lỗi lưu');
+                return;
+            }
+            closeMonHocModal();
+            loadAdminMonHoc();
+        } catch (e) {
+            console.error(e);
+            alert('Lỗi kết nối');
+        }
+    });
+
+    async function deleteMonHoc(id) {
+        if (!confirm('Xóa môn học này? Chỉ xóa được khi không còn chủ đề và đề thi liên quan.')) return;
+        try {
+            const res = await fetch('/api/admin/mon-hoc/' + encodeURIComponent(id), {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + savedToken }
+            });
+            const json = await res.json();
+            if (res.status === 401) {
+                window.location.href = '/login/admin?expired=1';
+                return;
+            }
+            if (!json.success) {
+                alert(json.message || 'Không xóa được');
+                return;
+            }
+            loadAdminMonHoc();
         } catch (e) {
             console.error(e);
             alert('Lỗi kết nối');

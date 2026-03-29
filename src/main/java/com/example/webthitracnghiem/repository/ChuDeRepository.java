@@ -21,6 +21,10 @@ public interface ChuDeRepository extends JpaRepository<ChuDe, String> {
      */
     List<ChuDe> findByMonHoc(MonHoc monHoc);
 
+    List<ChuDe> findByMonHocOrderByIdAsc(MonHoc monHoc);
+
+    long countByMonHoc(MonHoc monHoc);
+
     /**
      * Kiểm tra chủ đề đã tồn tại trong môn học chưa (tránh trùng tên)
      * @param ten Tên chủ đề

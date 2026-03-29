@@ -4,6 +4,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDateTime;
+
 /**
  * DTO — Dữ liệu đầu vào khi tạo đề thi mới.
  * Áp dụng Bean Validation để kiểm tra tính hợp lệ trước khi xử lý.
@@ -25,6 +27,13 @@ public class TaoDeThiDTO {
     /** Trạng thái ban đầu: NHAP hoặc CONG_KHAI. Mặc định NHAP nếu không truyền. */
     private String trangThai = "NHAP";
 
+    private LocalDateTime thoiGianMo;
+    private LocalDateTime thoiGianDong;
+
+    /** Số lần thi tối đa cho mỗi sinh viên. Null = không giới hạn. */
+    @Min(value = 1, message = "Số lần thi tối đa phải ít nhất 1")
+    private Integer soLanThiToiDa;
+
     public String getTenDeThi() { return tenDeThi; }
     public void setTenDeThi(String tenDeThi) { this.tenDeThi = tenDeThi; }
 
@@ -39,4 +48,13 @@ public class TaoDeThiDTO {
 
     public String getTrangThai() { return trangThai; }
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+
+    public LocalDateTime getThoiGianMo() { return thoiGianMo; }
+    public void setThoiGianMo(LocalDateTime thoiGianMo) { this.thoiGianMo = thoiGianMo; }
+
+    public LocalDateTime getThoiGianDong() { return thoiGianDong; }
+    public void setThoiGianDong(LocalDateTime thoiGianDong) { this.thoiGianDong = thoiGianDong; }
+
+    public Integer getSoLanThiToiDa() { return soLanThiToiDa; }
+    public void setSoLanThiToiDa(Integer soLanThiToiDa) { this.soLanThiToiDa = soLanThiToiDa; }
 }
