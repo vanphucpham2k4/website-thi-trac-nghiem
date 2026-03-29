@@ -63,7 +63,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const pageMonHoc = document.getElementById('pageMonHoc');
     const pageQuanLyDeThi = document.getElementById('pageQuanLyDeThi');
     const pageQuanLyCauHoi = document.getElementById('pageQuanLyCauHoi');
-    const pagePlaceholder = document.getElementById('pagePlaceholder');
     const mainPageTitle = document.getElementById('mainPageTitle');
     const menuItems = document.querySelectorAll('.menu-item[data-page]');
 
@@ -73,7 +72,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pageMonHoc) pageMonHoc.style.display = 'none';
         if (pageQuanLyDeThi) pageQuanLyDeThi.style.display = 'none';
         if (pageQuanLyCauHoi) pageQuanLyCauHoi.style.display = 'none';
-        if (pagePlaceholder) pagePlaceholder.style.display = 'none';
     }
 
     function showPage(page) {
@@ -111,10 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
             loadAdminGiaoVienCauHoi();
             return;
         }
-        // Fallback placeholder
-        hideAllMainPages();
-        if (pagePlaceholder) pagePlaceholder.style.display = '';
-        if (mainPageTitle) mainPageTitle.textContent = 'Đang phát triển';
+        // Fallback — unknown page, do nothing
     }
 
     menuItems.forEach(function (item) {
