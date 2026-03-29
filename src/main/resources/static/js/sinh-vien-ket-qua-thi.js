@@ -53,16 +53,34 @@ function duongDanChiTiet() {
 function render(kq) {
     const root = document.getElementById('kqRoot');
     if (!root) return;
+    const duocXemChiTiet = kq.duocXemChiTiet !== false;
     const meta = [kq.ngayThi, kq.maHocPhan, kq.tenGiaoVien].filter(Boolean).join(' · ');
     const phutGioiHan = kq.thoiGianGioiHanPhut != null ? kq.thoiGianGioiHanPhut : 0;
     const baseCt = duongDanChiTiet();
-    const grid = (kq.trangThaiCacCau || [])
-        .map((o) => {
-            const cls = o.dung ? 'dung' : 'sai';
-            const href = `${baseCt}#cau-${o.stt}`;
-            return `<a class="kq-o ${cls}" href="${href}" title="Câu ${o.stt}">${o.stt}</a>`;
-        })
-        .join('');
+    const grid = duocXemChiTiet
+        ? (kq.trangThaiCacCau || [])
+              .map((o) => {
+                  const cls = o.dung ? 'dung' : 'sai';
+                  const href = `${baseCt}#cau-${o.stt}`;
+                  return `<a class="kq-o ${cls}" href="${href}" title="Câu ${o.stt}">${o.stt}</a>`;
+              })
+              .join('')
+        : '';
+
+    const linkChiTiet = duocXemChiTiet
+        ? `<a class="link-chi-tiet" href="${baseCt}">Xem lại chi tiết từng câu →</a>`
+        : '<span class="link-chi-tiet" style="opacity:0.65;cursor:default;text-decoration:none;">Giáo viên chưa bật xem lại chi tiết bài thi.</span>';
+
+    const kqGridBlock = duocXemChiTiet
+        ? `<div class="kq-grid-wrap">
+            <h3>Bản đồ câu hỏi</h3>
+            <div class="kq-grid">${grid}</div>
+            <div class="kq-legend">
+                <span style="color:#38a169">●</span> Câu trả lời đúng &nbsp;
+                <span style="color:#e53e3e">●</span> Câu trả lời sai
+            </div>
+        </div>`
+        : '';
 
     root.innerHTML = `
         <h2 class="kq-title">${escHtml(kq.tenDeThi || 'Bài thi')}</h2>
@@ -84,16 +102,9 @@ function render(kq) {
         </div>
         <div class="kq-actions">
             <button type="button" class="btn-thoat" id="btnThoatVeTrangChu"><i class="fas fa-home"></i> Thoát</button>
-            <a class="link-chi-tiet" href="${baseCt}">Xem lại chi tiết từng câu →</a>
+            ${linkChiTiet}
         </div>
-        <div class="kq-grid-wrap">
-            <h3>Bản đồ câu hỏi</h3>
-            <div class="kq-grid">${grid}</div>
-            <div class="kq-legend">
-                <span style="color:#38a169">●</span> Câu trả lời đúng &nbsp;
-                <span style="color:#e53e3e">●</span> Câu trả lời sai
-            </div>
-        </div>
+        ${kqGridBlock}
         <p style="font-size:0.8rem;color:#a0aec0;">© 2026 Hệ thống quản lý thi trực tuyến - Hutech</p>
     `;
 

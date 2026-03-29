@@ -2,6 +2,7 @@ package com.example.webthitracnghiem.service;
 
 import com.example.webthitracnghiem.dto.ApiResponse;
 import com.example.webthitracnghiem.dto.GiaoVienKetQuaDeThiItemDTO;
+import com.example.webthitracnghiem.dto.GiaoVienKetQuaExportXlsxRequest;
 import com.example.webthitracnghiem.dto.GiaoVienKetQuaLopItemDTO;
 import com.example.webthitracnghiem.dto.GiaoVienKetQuaSinhVienItemDTO;
 import com.example.webthitracnghiem.model.*;
@@ -9,6 +10,7 @@ import com.example.webthitracnghiem.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -228,6 +230,48 @@ public class GiaoVienKetQuaService {
         kq.setTongDiem(diem);
         ketQuaThiRepository.save(kq);
         return ApiResponse.success("Cập nhật điểm thành công.", null);
+    }
+
+    // ========== Xuất Excel (.xlsx) ==========
+
+    /**
+     * Kiểm tra đề thuộc GV, từng {@code ketQuaThiId} thuộc đúng {@code deThiId}, rồi tạo workbook.
+     */
+    @Transactional(readOnly = true)
+    public ApiResponse<byte[]> xuatKetQuaXlsx(String giaoVienId, GiaoVienKetQuaExportXlsxRequest req) {
+        if (req == null || req.getDeThiId() == null || req.getDeThiId().isBlank()) {
+            return ApiResponse.error("Thiếu mã đề thi.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+        List<GiaoVienKetQuaSinhVienItemDTO> rows = req.getRows();
+        if (rows == null || rows.isEmpty()) {
+            return ApiResponse.error("Không có dữ liệu để xuất.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+        Optional<DeThi> dtOpt = deThiRepository.findById(req.getDeThiId());
+        if (dtOpt.isEmpty() || !dtOpt.get().getNguoiDung().getId().equals(giaoVienId)) {
+            return ApiResponse.error("Không tìm thấy đề thi hoặc bạn không có quyền.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+        String deThiId = req.getDeThiId();
+        for (GiaoVienKetQuaSinhVienItemDTO row : rows) {
+            if (row.getKetQuaThiId() == null || row.getKetQuaThiId().isBlank()) {
+                return ApiResponse.error("Dữ liệu xuất không hợp lệ (thiếu mã kết quả).", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+            }
+            Optional<KetQuaThi> kqOpt = ketQuaThiRepository.findById(row.getKetQuaThiId());
+            if (kqOpt.isEmpty()) {
+                return ApiResponse.error("Không tìm thấy kết quả thi.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+            }
+            KetQuaThi kq = kqOpt.get();
+            PhienThi pt = kq.getPhienThi();
+            DeThi dt = pt != null ? pt.getDeThi() : null;
+            if (dt == null || !dt.getId().equals(deThiId)) {
+                return ApiResponse.error("Dữ liệu không khớp đề thi.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+            }
+        }
+        try {
+            byte[] bytes = GiaoVienKetQuaExcelExporter.taoXlsx(rows);
+            return ApiResponse.success("OK", bytes);
+        } catch (IOException e) {
+            return ApiResponse.error("Không tạo được file Excel.", AuthService.ERR_HE_THONG);
+        }
     }
 
     // ========== Helper: Xây dựng danh sách DTO từ KetQuaThi ==========

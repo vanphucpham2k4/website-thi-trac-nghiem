@@ -34,6 +34,9 @@ public class TaoDeThiDTO {
     @Min(value = 1, message = "Số lần thi tối đa phải ít nhất 1")
     private Integer soLanThiToiDa;
 
+    /** Null = mặc định cho phép xem lại chi tiết sau thi. */
+    private Boolean choPhepXemLai;
+
     public String getTenDeThi() { return tenDeThi; }
     public void setTenDeThi(String tenDeThi) { this.tenDeThi = tenDeThi; }
 
@@ -57,4 +60,7 @@ public class TaoDeThiDTO {
 
     public Integer getSoLanThiToiDa() { return soLanThiToiDa; }
     public void setSoLanThiToiDa(Integer soLanThiToiDa) { this.soLanThiToiDa = soLanThiToiDa; }
+
+    public Boolean getChoPhepXemLai() { return choPhepXemLai; }
+    public void setChoPhepXemLai(Boolean choPhepXemLai) { this.choPhepXemLai = choPhepXemLai; }
 }

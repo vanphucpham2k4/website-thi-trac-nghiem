@@ -2,12 +2,15 @@ package com.example.webthitracnghiem.controller;
 
 import com.example.webthitracnghiem.dto.ApiResponse;
 import com.example.webthitracnghiem.dto.GiaoVienKetQuaDeThiItemDTO;
+import com.example.webthitracnghiem.dto.GiaoVienKetQuaExportXlsxRequest;
 import com.example.webthitracnghiem.dto.GiaoVienKetQuaLopItemDTO;
 import com.example.webthitracnghiem.dto.GiaoVienKetQuaSinhVienItemDTO;
 import com.example.webthitracnghiem.service.AuthService;
 import com.example.webthitracnghiem.service.GiaoVienKetQuaService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -120,6 +123,40 @@ public class GiaoVienKetQuaController {
         }
         ApiResponse<Void> res = ketQuaService.capNhatDiem(gvId, ketQuaThiId, diem);
         return res.isSuccess() ? ResponseEntity.ok(res) : ResponseEntity.badRequest().body(res);
+    }
+
+    /** Xuất danh sách kết quả (đang hiển thị) ra file Excel .xlsx */
+    @PostMapping(value = "/export-xlsx", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> xuatExcelXlsx(
+            HttpServletRequest request,
+            @RequestBody GiaoVienKetQuaExportXlsxRequest body) {
+        String gvId = layGiaoVienId(request);
+        if (gvId == null) {
+            return unauthorized();
+        }
+        ApiResponse<byte[]> res = ketQuaService.xuatKetQuaXlsx(gvId, body);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+        }
+        String base = sanitizeFilename(body != null ? body.getFileNameHint() : null);
+        String filename = "ket-qua-" + base + ".xlsx";
+        byte[] data = res.getData();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(data);
+    }
+
+    private static String sanitizeFilename(String hint) {
+        if (hint == null || hint.isBlank()) {
+            return "export";
+        }
+        String s = hint.replaceAll("[^a-zA-Z0-9._\\-]", "_");
+        if (s.length() > 80) {
+            s = s.substring(0, 80);
+        }
+        return s.isEmpty() ? "export" : s;
     }
 
     // ===== Helper =====

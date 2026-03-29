@@ -3,11 +3,15 @@ package com.example.webthitracnghiem.controller;
 import com.example.webthitracnghiem.dto.ApiResponse;
 import com.example.webthitracnghiem.dto.GiaoVienDashboardDTO;
 import com.example.webthitracnghiem.dto.SinhVienDashboardDTO;
+import com.example.webthitracnghiem.dto.SinhVienLichSuThiItemDTO;
 import com.example.webthitracnghiem.service.DashboardService;
+import com.example.webthitracnghiem.service.SinhVienThiService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Controller - Xử lý Dashboard cho SINH VIÊN và GIÁO VIÊN
@@ -22,13 +26,15 @@ public class DashboardController {
 
     // ===== BEAN DEPENDENCY INJECTION =====
     private final DashboardService dashboardService;
+    private final SinhVienThiService sinhVienThiService;
 
     /**
      * Constructor injection
      * @param dashboardService Service xử lý dữ liệu dashboard
      */
-    public DashboardController(DashboardService dashboardService) {
+    public DashboardController(DashboardService dashboardService, SinhVienThiService sinhVienThiService) {
         this.dashboardService = dashboardService;
+        this.sinhVienThiService = sinhVienThiService;
     }
 
     // ========================================
@@ -256,12 +262,14 @@ public class DashboardController {
      */
     @GetMapping("/api/sinh-vien/lich-su")
     @ResponseBody
-    public ResponseEntity<ApiResponse<Object>> layLichSuThi(
+    public ResponseEntity<ApiResponse<List<SinhVienLichSuThiItemDTO>>> layLichSuThi(
             @RequestParam("userId") String userId
     ) {
-        // Trong thực tế sẽ gọi repository để lấy lịch sử thi
-        // Hiện tại trả về mock data để demo
-        return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử thi thành công", null));
+        ApiResponse<List<SinhVienLichSuThiItemDTO>> res = sinhVienThiService.layLichSu(userId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(404).body(res);
+        }
+        return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử thi thành công", res.getData()));
     }
 
     /**

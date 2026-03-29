@@ -26,7 +26,12 @@ public interface KetQuaThiRepository extends JpaRepository<KetQuaThi, String> {
      * @param nguoiDung Người dùng cần tìm kết quả
      * @return Danh sách kết quả thi
      */
-    @Query("SELECT kq FROM KetQuaThi kq WHERE kq.phienThi.nguoiDung = :nguoiDung ORDER BY kq.thoiGianNop DESC")
+    @Query("SELECT kq FROM KetQuaThi kq " +
+           "JOIN FETCH kq.phienThi pt " +
+           "JOIN FETCH pt.deThi d " +
+           "LEFT JOIN FETCH d.monHoc " +
+           "WHERE pt.nguoiDung = :nguoiDung " +
+           "ORDER BY kq.thoiGianNop DESC")
     List<KetQuaThi> findByNguoiDung(@Param("nguoiDung") NguoiDung nguoiDung);
 
     /**

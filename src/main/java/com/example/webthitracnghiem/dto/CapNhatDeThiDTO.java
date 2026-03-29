@@ -36,6 +36,9 @@ public class CapNhatDeThiDTO {
     private Boolean tronCauHoi;
     private Boolean tronDapAn;
 
+    /** Null = giữ nguyên giá trị hiện tại trên đề thi. */
+    private Boolean choPhepXemLai;
+
     public String getTenDeThi() { return tenDeThi; }
     public void setTenDeThi(String tenDeThi) { this.tenDeThi = tenDeThi; }
 
@@ -65,4 +68,7 @@ public class CapNhatDeThiDTO {
 
     public Boolean getTronDapAn() { return tronDapAn; }
     public void setTronDapAn(Boolean tronDapAn) { this.tronDapAn = tronDapAn; }
+
+    public Boolean getChoPhepXemLai() { return choPhepXemLai; }
+    public void setChoPhepXemLai(Boolean choPhepXemLai) { this.choPhepXemLai = choPhepXemLai; }
 }

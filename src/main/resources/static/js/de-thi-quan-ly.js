@@ -641,6 +641,8 @@ function dienvaoFormDeThi(d) {
     document.getElementById('inputSoLan').value      = d.soLanThiToiDa || '';
     document.getElementById('inputThoiGianMo').value  = localDateTimeStr(d.thoiGianMo);
     document.getElementById('inputThoiGianDong').value = localDateTimeStr(d.thoiGianDong);
+    const chkXemLai = document.getElementById('inputChoPhepXemLai');
+    if (chkXemLai) chkXemLai.checked = d.choPhepXemLai !== false;
 }
 
 function resetFormDeThi() {
@@ -654,6 +656,8 @@ function resetFormDeThi() {
         cdForm.disabled = true;
     }
     document.getElementById('inputTrangThai').value = 'NHAP';
+    const chkXemLai = document.getElementById('inputChoPhepXemLai');
+    if (chkXemLai) chkXemLai.checked = true;
     clearErrors();
 }
 
@@ -711,7 +715,8 @@ async function luuDeThi() {
         trangThai:    document.getElementById('inputTrangThai').value,
         soLanThiToiDa: parseInt(document.getElementById('inputSoLan').value) || null,
         thoiGianMo:   document.getElementById('inputThoiGianMo').value  || null,
-        thoiGianDong: document.getElementById('inputThoiGianDong').value || null
+        thoiGianDong: document.getElementById('inputThoiGianDong').value || null,
+        choPhepXemLai: !!document.getElementById('inputChoPhepXemLai')?.checked
     };
 
     const btn = document.getElementById('btnLuuDeThi');

@@ -46,7 +46,7 @@
     const bangKetQuaBody  = document.getElementById('bangKetQuaBody');
     const paginationEl    = document.getElementById('pagination');
     const searchInput     = document.getElementById('searchInput');
-    const btnExportCsv    = document.getElementById('btnExportCsv');
+    const btnExportXlsx   = document.getElementById('btnExportXlsx');
     const displayName     = document.getElementById('displayName');
     const tabLop          = document.getElementById('tabLop');
     const tabAllDeThi     = document.getElementById('tabAllDeThi');
@@ -82,7 +82,7 @@
             renderBangKetQua();
         });
 
-        btnExportCsv.addEventListener('click', exportCsv);
+        btnExportXlsx.addEventListener('click', exportXlsx);
     });
 
     // ===== Tabs =====
@@ -461,34 +461,56 @@
         }).catch(function () { showToast('Lỗi kết nối.', 'error'); });
     }
 
-    // ===== Export CSV =====
-    function exportCsv() {
+    // ===== Xuất Excel (.xlsx) — server Apache POI, đúng bộ lọc hiện tại =====
+    function exportXlsx() {
         if (!filteredKetQua || filteredKetQua.length === 0) {
-            showToast('Không có dữ liệu để xuất.', 'info'); return;
+            showToast('Không có dữ liệu để xuất.', 'info');
+            return;
         }
-        var BOM = '\uFEFF';
-        var header = 'STT,MSSV,Họ,Tên,Link truy cập,Mã code đã dùng,Điểm,Thời gian nộp,Nguồn,Ghi chú\n';
-        var rows = '';
-        filteredKetQua.forEach(function (r, idx) {
-            rows += (idx + 1) + ',' +
-                csvVal(r.mssv) + ',' + csvVal(r.ho) + ',' + csvVal(r.ten) + ',' +
-                csvVal(r.duongDanTruyCap) + ',' + csvVal(r.maTruyCapDaDung) + ',' +
-                csvVal(r.diem) + ',' + csvVal(r.thoiGianNop) + ',' +
-                csvVal(r.nguon) + ',' + csvVal(r.ghiChu) + '\n';
+        if (!currentDeThiId) {
+            showToast('Thiếu mã đề thi.', 'error');
+            return;
+        }
+        fetch(API_BASE + '/export-xlsx', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                deThiId: currentDeThiId,
+                fileNameHint: currentDeThiTen || '',
+                rows: filteredKetQua
+            })
+        }).then(function (res) {
+            if (res.status === 401) {
+                storage.removeItem('nguoiDung');
+                storage.removeItem('vaiTro');
+                storage.removeItem('token');
+                storage.removeItem('tokenExpiresAt');
+                window.location.href = '/login?expired=1';
+                return;
+            }
+            if (!res.ok) {
+                return res.json().then(function (j) {
+                    showToast((j && j.message) || 'Lỗi xuất file.', 'error');
+                });
+            }
+            var disp = res.headers.get('Content-Disposition');
+            var fname = 'ket-qua-export.xlsx';
+            if (disp) {
+                var m = /filename="([^"]+)"/.exec(disp);
+                if (m) fname = m[1];
+            }
+            return res.blob().then(function (blob) {
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = fname;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Đã xuất file Excel.', 'success');
+            });
+        }).catch(function () {
+            showToast('Lỗi kết nối.', 'error');
         });
-        var blob = new Blob([BOM + header + rows], { type: 'text/csv;charset=utf-8;' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'ket-qua-' + (currentDeThiTen || 'export') + '.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('Đã xuất file CSV.', 'success');
-    }
-
-    function csvVal(val) {
-        if (val == null) return '""';
-        return '"' + String(val).replace(/"/g, '""') + '"';
     }
 
     // ===== Fetch helper =====

@@ -18,6 +18,9 @@ public class SinhVienKetQuaThiDTO {
     private int tongSoCau;
     private List<SinhVienOTrangThaiCauDTO> trangThaiCacCau = new ArrayList<>();
 
+    /** true khi đề cho phép xem lại chi tiết từng câu (API + UI). */
+    private boolean duocXemChiTiet = true;
+
     public String getPhienThiId() {
         return phienThiId;
     }
@@ -112,5 +115,13 @@ public class SinhVienKetQuaThiDTO {
 
     public void setTrangThaiCacCau(List<SinhVienOTrangThaiCauDTO> trangThaiCacCau) {
         this.trangThaiCacCau = trangThaiCacCau != null ? trangThaiCacCau : new ArrayList<>();
+    }
+
+    public boolean isDuocXemChiTiet() {
+        return duocXemChiTiet;
+    }
+
+    public void setDuocXemChiTiet(boolean duocXemChiTiet) {
+        this.duocXemChiTiet = duocXemChiTiet;
     }
 }
