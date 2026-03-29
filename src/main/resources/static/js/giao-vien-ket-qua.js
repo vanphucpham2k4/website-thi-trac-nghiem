@@ -10,6 +10,7 @@
     const API_BASE = '/api/giao-vien/ket-qua';
     const PAGE_SIZE = 15;
     const COL_SPAN = 10; // 9 cột cũ + 1 cột nguồn
+    const STORAGE_KEY = 'giaoVienKetQuaNav';
 
     // ===== Storage =====
     var storage = localStorage.getItem('token') ? localStorage : sessionStorage;
@@ -50,6 +51,12 @@
     const displayName     = document.getElementById('displayName');
     const tabLop          = document.getElementById('tabLop');
     const tabAllDeThi     = document.getElementById('tabAllDeThi');
+    const filterLopInput       = document.getElementById('filterLopInput');
+    const filterAllDeThiInput  = document.getElementById('filterAllDeThiInput');
+    const filterDeThiLopInput  = document.getElementById('filterDeThiLopInput');
+
+    /** Sau F5: gán trước khi gọi load ket qua để không bị resetTable xóa */
+    var restoreKetQuaSearchPending = null;
 
     // ===== Init =====
     document.addEventListener('DOMContentLoaded', function () {
@@ -68,40 +75,52 @@
         initSidebar();
         initLogout();
         loadUserName();
-        loadDanhSachLop();
         initTabs();
 
+        if (filterLopInput) {
+            filterLopInput.addEventListener('input', function () { applyLopGridFilter(); });
+        }
+        if (filterAllDeThiInput) {
+            filterAllDeThiInput.addEventListener('input', function () { applyAllDeThiGridFilter(); });
+        }
+        if (filterDeThiLopInput) {
+            filterDeThiLopInput.addEventListener('input', function () { applyDeThiLopGridFilter(); });
+        }
+
         searchInput.addEventListener('input', function () {
-            var q = this.value.trim().toLowerCase();
-            filteredKetQua = q ? allKetQua.filter(function (r) {
-                return (r.mssv || '').toLowerCase().includes(q) ||
-                       (r.ho || '').toLowerCase().includes(q) ||
-                       (r.ten || '').toLowerCase().includes(q);
-            }) : allKetQua.slice();
-            currentPage = 1;
-            renderBangKetQua();
+            applyResultTableFilter();
+            saveNavStateDebounced();
         });
 
         btnExportXlsx.addEventListener('click', exportXlsx);
+
+        tryRestoreNavState();
+        loadDanhSachLop();
     });
 
     // ===== Tabs =====
+    function setTabUI(tab, loadAllDeThiGrid) {
+        currentTab = tab;
+        document.querySelectorAll('#kqTabs .kq-tab').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.tab === tab);
+        });
+        if (tab === 'lop') {
+            tabLop.style.display = '';
+            tabAllDeThi.style.display = 'none';
+        } else {
+            tabLop.style.display = 'none';
+            tabAllDeThi.style.display = '';
+            if (loadAllDeThiGrid) loadDanhSachDeThiAll();
+        }
+    }
+
     function initTabs() {
         document.querySelectorAll('#kqTabs .kq-tab').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var tab = this.dataset.tab;
-                currentTab = tab;
-                document.querySelectorAll('#kqTabs .kq-tab').forEach(function (b) { b.classList.remove('active'); });
-                this.classList.add('active');
-
-                if (tab === 'lop') {
-                    tabLop.style.display = '';
-                    tabAllDeThi.style.display = 'none';
-                } else {
-                    tabLop.style.display = 'none';
-                    tabAllDeThi.style.display = '';
-                    loadDanhSachDeThiAll();
-                }
+                if (tab === 'lop') setTabUI('lop', false);
+                else setTabUI('deThi', true);
+                saveNavState();
             });
         });
     }
@@ -142,8 +161,17 @@
         if (bcDeThi) bcDeThi.addEventListener('click', function (e) { e.preventDefault(); goToDeThi(); });
     }
 
-    function goToLop() { showView('lop'); updateBreadcrumb('lop'); }
-    function goToDeThi() { showView('deThi'); updateBreadcrumb('deThi'); }
+    function goToLop() {
+        showView('lop');
+        updateBreadcrumb('lop');
+        setTabUI(currentTab, currentTab === 'deThi');
+        saveNavState();
+    }
+    function goToDeThi() {
+        showView('deThi');
+        updateBreadcrumb('deThi');
+        saveNavState();
+    }
 
     // ===== Luồng 1 — Bước 1: Danh sách lớp =====
     function loadDanhSachLop() {
@@ -151,6 +179,7 @@
         fetchApi(API_BASE + '/lop', 'GET').then(function (res) {
             if (!res || !res.success || !res.data || res.data.length === 0) {
                 lopCardGrid.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><br>Chưa có lớp học nào.</div>';
+                saveNavState();
                 return;
             }
             var html = '';
@@ -163,6 +192,7 @@
                         '</div></div>';
             });
             lopCardGrid.innerHTML = html;
+            applyLopGridFilter();
             lopCardGrid.querySelectorAll('.kq-card').forEach(function (card) {
                 card.addEventListener('click', function () {
                     currentLopId = this.dataset.lopId;
@@ -170,8 +200,10 @@
                     loadDanhSachDeThi(currentLopId);
                 });
             });
+            saveNavState();
         }).catch(function () {
             lopCardGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>Lỗi tải dữ liệu.</div>';
+            saveNavState();
         });
     }
 
@@ -183,9 +215,12 @@
         fetchApi(API_BASE + '/lop/' + lopId + '/de-thi', 'GET').then(function (res) {
             if (!res || !res.success || !res.data || res.data.length === 0) {
                 deThiCardGrid.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><br>Chưa có đề thi nào xuất bản cho lớp này.</div>';
+                saveNavState();
                 return;
             }
             deThiCardGrid.innerHTML = renderDeThiCards(res.data, true);
+            if (filterDeThiLopInput) filterDeThiLopInput.value = '';
+            applyDeThiLopGridFilter();
             deThiCardGrid.querySelectorAll('.kq-card').forEach(function (card) {
                 card.addEventListener('click', function () {
                     currentDeThiId = this.dataset.deThiId;
@@ -193,8 +228,10 @@
                     loadKetQuaSinhVien(currentLopId, currentDeThiId);
                 });
             });
+            saveNavState();
         }).catch(function () {
             deThiCardGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>Lỗi tải dữ liệu.</div>';
+            saveNavState();
         });
     }
 
@@ -207,14 +244,16 @@
             if (!res || !res.success || !res.data || res.data.length === 0) {
                 allKetQua = []; filteredKetQua = [];
                 bangKetQuaBody.innerHTML = '<tr><td colspan="' + COL_SPAN + '" class="empty-state"><i class="fas fa-inbox"></i><br>Chưa có kết quả nào.</td></tr>';
+                restoreKetQuaSearchPending = null;
+                saveNavState();
                 return;
             }
             allKetQua = res.data;
-            filteredKetQua = allKetQua.slice();
-            currentPage = 1;
-            renderBangKetQua();
+            finishKetQuaLoadAfterFetch();
         }).catch(function () {
             bangKetQuaBody.innerHTML = '<tr><td colspan="' + COL_SPAN + '" class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>Lỗi tải dữ liệu.</td></tr>';
+            restoreKetQuaSearchPending = null;
+            saveNavState();
         });
     }
 
@@ -224,9 +263,12 @@
         fetchApi(API_BASE + '/de-thi', 'GET').then(function (res) {
             if (!res || !res.success || !res.data || res.data.length === 0) {
                 allDeThiCardGrid.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><br>Chưa có đề thi nào.</div>';
+                saveNavState();
                 return;
             }
             allDeThiCardGrid.innerHTML = renderDeThiCards(res.data, false);
+            if (filterAllDeThiInput) filterAllDeThiInput.value = '';
+            applyAllDeThiGridFilter();
             allDeThiCardGrid.querySelectorAll('.kq-card').forEach(function (card) {
                 card.addEventListener('click', function () {
                     currentDeThiId = this.dataset.deThiId;
@@ -236,8 +278,10 @@
                     loadKetQuaTheoDeThiId(currentDeThiId);
                 });
             });
+            saveNavState();
         }).catch(function () {
             allDeThiCardGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>Lỗi tải dữ liệu.</div>';
+            saveNavState();
         });
     }
 
@@ -250,15 +294,30 @@
             if (!res || !res.success || !res.data || res.data.length === 0) {
                 allKetQua = []; filteredKetQua = [];
                 bangKetQuaBody.innerHTML = '<tr><td colspan="' + COL_SPAN + '" class="empty-state"><i class="fas fa-inbox"></i><br>Chưa có kết quả nào.</td></tr>';
+                restoreKetQuaSearchPending = null;
+                saveNavState();
                 return;
             }
             allKetQua = res.data;
+            finishKetQuaLoadAfterFetch();
+        }).catch(function () {
+            bangKetQuaBody.innerHTML = '<tr><td colspan="' + COL_SPAN + '" class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>Lỗi tải dữ liệu.</td></tr>';
+            restoreKetQuaSearchPending = null;
+            saveNavState();
+        });
+    }
+
+    function finishKetQuaLoadAfterFetch() {
+        if (restoreKetQuaSearchPending != null) {
+            searchInput.value = restoreKetQuaSearchPending;
+            restoreKetQuaSearchPending = null;
+            applyResultTableFilter();
+        } else {
             filteredKetQua = allKetQua.slice();
             currentPage = 1;
             renderBangKetQua();
-        }).catch(function () {
-            bangKetQuaBody.innerHTML = '<tr><td colspan="' + COL_SPAN + '" class="empty-state"><i class="fas fa-exclamation-triangle"></i><br>Lỗi tải dữ liệu.</td></tr>';
-        });
+        }
+        saveNavState();
     }
 
     // ===== Render đề thi cards (dùng chung 2 luồng) =====
@@ -266,7 +325,8 @@
         var html = '';
         data.forEach(function (dt) {
             var ten = dt.tenDeThi || dt.maDeThi || 'Đề thi';
-            html += '<div class="kq-card" data-de-thi-id="' + dt.deThiId + '" data-de-thi-ten="' + escAttr(ten) + '">' +
+            var mon = dt.tenMonHoc || '';
+            html += '<div class="kq-card" data-de-thi-id="' + dt.deThiId + '" data-de-thi-ten="' + escAttr(ten) + '" data-ten-mon="' + escAttr(mon) + '">' +
                     '<h4><i class="fas fa-file-alt"></i> ' + escHtml(ten) + '</h4>' +
                     '<div class="kq-card-stats">' +
                     '<span><i class="fas fa-book"></i> ' + escHtml(dt.tenMonHoc || '—') + '</span>' +
@@ -282,9 +342,164 @@
 
     // ===== Render bảng kết quả =====
     function resetTable() {
-        searchInput.value = '';
+        if (restoreKetQuaSearchPending == null) searchInput.value = '';
         bangKetQuaBody.innerHTML = '<tr><td colspan="' + COL_SPAN + '" class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</td></tr>';
         paginationEl.innerHTML = '';
+    }
+
+    function chuanHoaTimKiem(s) {
+        return String(s || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function applyResultTableFilter() {
+        var q = chuanHoaTimKiem(searchInput.value);
+        if (!q) {
+            filteredKetQua = allKetQua.slice();
+        } else {
+            filteredKetQua = allKetQua.filter(function (r) {
+                var blob = [
+                    r.mssv, r.ho, r.ten, r.duongDanTruyCap, r.maTruyCapDaDung,
+                    r.diem, r.thoiGianNop, r.nguon, r.ghiChu
+                ].map(function (x) { return chuanHoaTimKiem(x); }).join(' ');
+                return blob.indexOf(q) >= 0;
+            });
+        }
+        currentPage = 1;
+        renderBangKetQua();
+    }
+
+    function applyLopGridFilter() {
+        if (!filterLopInput || !lopCardGrid) return;
+        var q = chuanHoaTimKiem(filterLopInput.value);
+        lopCardGrid.querySelectorAll('.kq-card').forEach(function (card) {
+            var t = chuanHoaTimKiem(card.dataset.lopTen || '');
+            card.style.display = (!q || t.indexOf(q) >= 0) ? '' : 'none';
+        });
+    }
+
+    function applyAllDeThiGridFilter() {
+        if (!filterAllDeThiInput || !allDeThiCardGrid) return;
+        var q = chuanHoaTimKiem(filterAllDeThiInput.value);
+        allDeThiCardGrid.querySelectorAll('.kq-card').forEach(function (card) {
+            var t = chuanHoaTimKiem(card.dataset.deThiTen || '') + ' ' + chuanHoaTimKiem(card.dataset.tenMon || '');
+            card.style.display = (!q || t.indexOf(q) >= 0) ? '' : 'none';
+        });
+    }
+
+    function applyDeThiLopGridFilter() {
+        if (!filterDeThiLopInput || !deThiCardGrid) return;
+        var q = chuanHoaTimKiem(filterDeThiLopInput.value);
+        deThiCardGrid.querySelectorAll('.kq-card').forEach(function (card) {
+            var t = chuanHoaTimKiem(card.dataset.deThiTen || '') + ' ' + chuanHoaTimKiem(card.dataset.tenMon || '');
+            card.style.display = (!q || t.indexOf(q) >= 0) ? '' : 'none';
+        });
+    }
+
+    function getMainViewName() {
+        if (viewKetQua.classList.contains('active')) return 'ketQua';
+        if (viewDeThi.classList.contains('active')) return 'deThi';
+        return 'lop';
+    }
+
+    function readStoredNav() {
+        try {
+            var raw = sessionStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch (e) { return null; }
+    }
+
+    function saveNavState() {
+        try {
+            var st = {
+                tab: currentTab,
+                mainView: getMainViewName(),
+                lopId: currentLopId,
+                lopTen: currentLopTen,
+                deThiId: currentDeThiId,
+                deThiTen: currentDeThiTen,
+                ketQuaSearch: searchInput ? searchInput.value : ''
+            };
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(st));
+        } catch (e) { /* ignore */ }
+
+        var p = new URLSearchParams();
+        p.set('tab', currentTab || 'lop');
+        p.set('view', getMainViewName());
+        if (currentLopId) p.set('lop', currentLopId);
+        if (currentDeThiId) p.set('de', currentDeThiId);
+        var qs = chuanHoaTimKiem(searchInput && searchInput.value ? searchInput.value : '');
+        if (qs) p.set('q', searchInput.value);
+        var newUrl = window.location.pathname + '?' + p.toString();
+        if (history.replaceState) history.replaceState(null, '', newUrl);
+    }
+
+    var _saveNavT = null;
+    function saveNavStateDebounced() {
+        if (_saveNavT) clearTimeout(_saveNavT);
+        _saveNavT = setTimeout(function () { saveNavState(); }, 400);
+    }
+
+    function tryRestoreNavState() {
+        var p = new URLSearchParams(window.location.search);
+        var stored = readStoredNav();
+
+        var tab = p.get('tab') || (stored && stored.tab) || 'lop';
+        if (tab !== 'lop' && tab !== 'deThi') tab = 'lop';
+
+        var view = p.get('view') || (stored && stored.mainView) || 'lop';
+        if (['lop', 'deThi', 'ketQua'].indexOf(view) < 0) view = 'lop';
+
+        var lopId = p.get('lop') || (stored && stored.lopId) || '';
+        var deId = p.get('de') || (stored && stored.deThiId) || '';
+        var lopTen = (stored && stored.lopTen) || '';
+        var deTen = (stored && stored.deThiTen) || '';
+
+        var qRestore = p.get('q');
+        if (qRestore == null && stored && stored.ketQuaSearch) qRestore = stored.ketQuaSearch;
+
+        if (view === 'ketQua' && deId) {
+            currentTab = tab;
+            currentLopId = lopId || '';
+            currentLopTen = lopTen;
+            currentDeThiId = deId;
+            currentDeThiTen = deTen || 'Đề thi';
+            if (!currentLopId) currentLopTen = lopTen || 'Tất cả đề thi';
+            setTabUI(tab, false);
+            restoreKetQuaSearchPending = qRestore != null ? qRestore : null;
+            if (lopId) {
+                loadKetQuaSinhVien(lopId, deId);
+            } else {
+                loadKetQuaTheoDeThiId(deId);
+            }
+            return;
+        }
+
+        if (view === 'deThi' && lopId) {
+            currentTab = 'lop';
+            currentLopId = lopId;
+            currentLopTen = lopTen;
+            currentDeThiId = '';
+            currentDeThiTen = '';
+            setTabUI('lop', false);
+            showView('deThi');
+            updateBreadcrumb('deThi');
+            loadDanhSachDeThi(lopId);
+            return;
+        }
+
+        if (tab === 'deThi' && view === 'lop') {
+            currentTab = 'deThi';
+            setTabUI('deThi', true);
+            saveNavState();
+            return;
+        }
+
+        restoreKetQuaSearchPending = null;
     }
 
     function renderBangKetQua() {

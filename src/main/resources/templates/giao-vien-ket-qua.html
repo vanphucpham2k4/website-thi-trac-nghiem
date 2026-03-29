@@ -254,7 +254,10 @@
 
                 <!-- Tab 1: Theo Lớp -->
                 <div id="tabLop" class="dashboard-card">
-                    <div class="card-header"><h3><i class="fas fa-school"></i> Chọn Lớp Học</h3></div>
+                    <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+                        <h3><i class="fas fa-school"></i> Chọn Lớp Học</h3>
+                        <input type="search" class="search-input" id="filterLopInput" placeholder="Tìm theo tên lớp…" autocomplete="off" style="max-width:280px;margin-left:auto;">
+                    </div>
                     <div class="card-body">
                         <div id="lopCardGrid" class="kq-card-grid">
                             <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</div>
@@ -264,7 +267,10 @@
 
                 <!-- Tab 2: Tất cả đề thi -->
                 <div id="tabAllDeThi" class="dashboard-card" style="display:none;">
-                    <div class="card-header"><h3><i class="fas fa-file-alt"></i> Tất Cả Đề Thi</h3></div>
+                    <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+                        <h3><i class="fas fa-file-alt"></i> Tất Cả Đề Thi</h3>
+                        <input type="search" class="search-input" id="filterAllDeThiInput" placeholder="Tìm theo tên đề, môn…" autocomplete="off" style="max-width:280px;margin-left:auto;">
+                    </div>
                     <div class="card-body">
                         <div id="allDeThiCardGrid" class="kq-card-grid">
                             <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</div>
@@ -276,7 +282,10 @@
             <!-- ========== Bước 2: Danh sách đề thi ========== -->
             <div class="view-section" id="viewDeThi">
                 <div class="dashboard-card">
-                    <div class="card-header"><h3><i class="fas fa-file-alt"></i> Đề Thi Đã Xuất Bản</h3></div>
+                    <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+                        <h3><i class="fas fa-file-alt"></i> Đề Thi Đã Xuất Bản</h3>
+                        <input type="search" class="search-input" id="filterDeThiLopInput" placeholder="Tìm theo tên đề, môn…" autocomplete="off" style="max-width:280px;margin-left:auto;">
+                    </div>
                     <div class="card-body">
                         <div id="deThiCardGrid" class="kq-card-grid">
                             <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</div>
@@ -296,7 +305,7 @@
                     </div>
                     <div class="card-body">
                         <div class="kq-toolbar">
-                            <input type="text" class="search-input" id="searchInput" placeholder="Tìm MSSV, họ tên…" autocomplete="off">
+                            <input type="search" class="search-input" id="searchInput" placeholder="MSSV, họ tên, link, mã, điểm, nguồn, ghi chú…" autocomplete="off">
                         </div>
                         <div class="table-responsive">
                             <table class="data-table" id="bangKetQua">
