@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống Kê Kết Quả - ThiTracNghiem</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========== Breadcrumb ========== */
+        .breadcrumb {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            margin-bottom: 20px; font-size: 0.9rem; color: #718096;
+        }
+        .breadcrumb a {
+            color: #667eea; text-decoration: none; font-weight: 500;
+            transition: color .15s;
+        }
+        .breadcrumb a:hover { color: #5a67d8; text-decoration: underline; }
+        .breadcrumb .sep { color: #a0aec0; }
+        .breadcrumb .current { color: #2d3748; font-weight: 600; }
+
+        /* ========== Card grid cho bước 1, 2 ========== */
+        .kq-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .kq-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px; padding: 22px 24px; color: #fff;
+            cursor: pointer; transition: transform .2s, box-shadow .2s;
+            position: relative; overflow: hidden;
+        }
+        .kq-card::before {
+            content: ''; position: absolute;
+            top: -30px; right: -30px; width: 90px; height: 90px;
+            border-radius: 50%; background: rgba(255,255,255,0.1);
+        }
+        .kq-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(102,126,234,0.35); }
+        .kq-card h4 {
+            margin: 0 0 10px; font-size: 1.1rem; font-weight: 600;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .kq-card-stats { display: flex; gap: 18px; font-size: 0.85rem; opacity: 0.9; }
+        .kq-card-stats span { display: flex; align-items: center; gap: 5px; }
+
+        /* Alternate gradient */
+        .kq-card:nth-child(4n+2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .kq-card:nth-child(4n+3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .kq-card:nth-child(4n)   { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+        /* ========== Bảng kết quả ========== */
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .data-table th, .data-table td { white-space: nowrap; }
+        .empty-state { text-align: center; padding: 2rem 1rem; color: #718096; }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+
+        /* ========== Pagination ========== */
+        .pagination {
+            display: flex; align-items: center; justify-content: center;
+            gap: 6px; margin-top: 18px; flex-wrap: wrap;
+        }
+        .pagination button {
+            border: 1.5px solid #e2e8f0; background: #fff; color: #4a5568;
+            border-radius: 8px; padding: 6px 12px; font-size: 0.85rem;
+            cursor: pointer; transition: all .15s; font-family: 'Poppins', sans-serif;
+        }
+        .pagination button:hover { border-color: #667eea; color: #667eea; }
+        .pagination button.active {
+            background: #667eea; color: #fff; border-color: #667eea;
+        }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+        .pagination .page-info { font-size: 0.85rem; color: #718096; margin: 0 8px; }
+
+        /* ========== Toolbar ========== */
+        .kq-toolbar {
+            display: flex; flex-wrap: wrap; align-items: center;
+            gap: 12px; margin-bottom: 16px;
+        }
+        .kq-toolbar .search-input {
+            flex: 1; min-width: 200px; max-width: 320px;
+            padding: 8px 14px; border: 1.5px solid #e2e8f0;
+            border-radius: 8px; font-family: inherit; font-size: 0.88rem;
+        }
+        .kq-toolbar .search-input:focus { border-color: #667eea; outline: none; }
+
+        /* ========== Ghi chú inline edit ========== */
+        .ghi-chu-cell {
+            display: flex; align-items: center; gap: 6px;
+        }
+        .ghi-chu-cell input {
+            width: 140px; padding: 4px 8px; border: 1px solid #e2e8f0;
+            border-radius: 6px; font-size: 0.82rem; font-family: inherit;
+        }
+        .ghi-chu-cell input:focus { border-color: #667eea; outline: none; }
+        .btn-save-note {
+            border: none; background: #667eea; color: #fff;
+            border-radius: 6px; width: 28px; height: 28px;
+            cursor: pointer; font-size: 0.78rem; transition: background .15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-save-note:hover { background: #5a67d8; }
+
+        /* ========== Toast ========== */
+        #toastContainer {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+            border-radius: 12px; min-width: 280px; max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15); font-size: 0.9rem; font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: #f0fff4; color: #276749; border-left: 4px solid #48bb78; }
+        .toast-error { background: #fff5f5; color: #9b2c2c; border-left: 4px solid #f56565; }
+        .toast-info { background: #ebf8ff; color: #2a4a6b; border-left: 4px solid #4299e1; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* ========== Section visibility ========== */
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        /* ========== Tabs ========== */
+        .kq-tabs {
+            display: flex; gap: 0; margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .kq-tab {
+            padding: 10px 24px; font-size: 0.92rem; font-weight: 500;
+            color: #718096; border: none; background: none;
+            cursor: pointer; transition: all .2s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px; font-family: 'Poppins', sans-serif;
+        }
+        .kq-tab:hover { color: #4a5568; }
+        .kq-tab.active {
+            color: #667eea; border-bottom-color: #667eea; font-weight: 600;
+        }
+
+        /* ========== Badge nguồn ========== */
+        .badge-nguon {
+            display: inline-block; padding: 2px 10px;
+            border-radius: 20px; font-size: 0.78rem; font-weight: 500;
+        }
+        .badge-nguon.lop { background: #ebf8ff; color: #2b6cb0; }
+        .badge-nguon.link { background: #fefcbf; color: #975a16; }
+
+        /* ========== Click-to-edit ========== */
+        .editable-diem, .editable-note {
+            cursor: pointer; padding: 2px 6px; border-radius: 6px;
+            border-bottom: 1.5px dashed transparent; transition: all .15s;
+            min-width: 40px; display: inline-block;
+        }
+        .editable-diem { font-weight: 600; color: #2d3748; }
+        .editable-note { color: #4a5568; }
+        .editable-diem:hover, .editable-note:hover {
+            background: #edf2f7; border-bottom-color: #667eea;
+        }
+        .placeholder-text { color: #a0aec0; font-style: italic; font-weight: 400; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Đóng menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">QUẢN LÝ</span>
+                <a th:href="@{/dashboard/giao-vien}" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/de-thi}" class="menu-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Quản Lý Đề Thi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/ngan-hang-cau-hoi}" class="menu-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Ngân Hàng Câu Hỏi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-sinh-vien}" class="menu-item">
+                    <i class="fas fa-users"></i>
+                    <span>Quản Lý Sinh Viên</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-lop-hoc}" class="menu-item">
+                    <i class="fas fa-school"></i>
+                    <span>Quản Lý Lớp Học</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/theo-doi-thi}" class="menu-item">
+                    <i class="fas fa-user-check"></i>
+                    <span>Theo Dõi Tham Gia Thi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/ket-qua}" class="menu-item active">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Thống Kê</span>
+                </a>
+            </div>
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/giao-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i>
+                    <span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1><i class="fas fa-chart-bar" style="color:#667eea;margin-right:10px;"></i>Thống Kê Kết Quả</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge">Giáo viên</span>
+                    </div>
+                    <div class="user-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <!-- Breadcrumb -->
+            <nav class="breadcrumb" id="breadcrumb">
+                <span class="current"><i class="fas fa-chart-bar"></i> Thống Kê</span>
+            </nav>
+
+            <!-- ========== Tab ban đầu ========== -->
+            <div class="view-section active" id="viewLop">
+                <!-- Tabs -->
+                <div class="kq-tabs" id="kqTabs">
+                    <button class="kq-tab active" data-tab="lop"><i class="fas fa-school"></i> Theo Lớp Học</button>
+                    <button class="kq-tab" data-tab="deThi"><i class="fas fa-file-alt"></i> Tất Cả Đề Thi</button>
+                </div>
+
+                <!-- Tab 1: Theo Lớp -->
+                <div id="tabLop" class="dashboard-card">
+                    <div class="card-header"><h3><i class="fas fa-school"></i> Chọn Lớp Học</h3></div>
+                    <div class="card-body">
+                        <div id="lopCardGrid" class="kq-card-grid">
+                            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Tất cả đề thi -->
+                <div id="tabAllDeThi" class="dashboard-card" style="display:none;">
+                    <div class="card-header"><h3><i class="fas fa-file-alt"></i> Tất Cả Đề Thi</h3></div>
+                    <div class="card-body">
+                        <div id="allDeThiCardGrid" class="kq-card-grid">
+                            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== Bước 2: Danh sách đề thi ========== -->
+            <div class="view-section" id="viewDeThi">
+                <div class="dashboard-card">
+                    <div class="card-header"><h3><i class="fas fa-file-alt"></i> Đề Thi Đã Xuất Bản</h3></div>
+                    <div class="card-body">
+                        <div id="deThiCardGrid" class="kq-card-grid">
+                            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== Bước 3: Bảng kết quả ========== -->
+            <div class="view-section" id="viewKetQua">
+                <div class="dashboard-card">
+                    <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+                        <h3><i class="fas fa-poll"></i> Kết Quả Sinh Viên</h3>
+                        <button type="button" class="btn btn-primary" id="btnExportCsv" style="margin-left:auto;">
+                            <i class="fas fa-file-csv"></i> Xuất CSV
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="kq-toolbar">
+                            <input type="text" class="search-input" id="searchInput" placeholder="Tìm MSSV, họ tên…" autocomplete="off">
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="bangKetQua">
+                                <thead>
+                                    <tr>
+                                        <th style="width:52px;">STT</th>
+                                        <th>MSSV</th>
+                                        <th>Họ</th>
+                                        <th>Tên</th>
+                                        <th>Link truy cập</th>
+                                        <th>Mã code đã dùng</th>
+                                        <th style="width:80px;text-align:center;">Điểm</th>
+                                        <th style="width:160px;">Thời gian nộp</th>
+                                        <th>Nguồn</th>
+                                        <th style="width:200px;">Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bangKetQuaBody">
+                                    <tr><td colspan="10" class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toastContainer"></div>
+    <script th:src="@{/js/giao-vien-ket-qua.js}"></script>
+</body>
+</html>

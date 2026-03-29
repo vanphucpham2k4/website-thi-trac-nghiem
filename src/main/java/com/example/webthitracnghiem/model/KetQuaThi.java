@@ -37,4 +37,7 @@ public class KetQuaThi {
 
 	@Column(name = "trang_thai_cham")
 	private String trangThaiCham;
+
+	@Column(name = "ghi_chu", columnDefinition = "TEXT")
+	private String ghiChu;
 }

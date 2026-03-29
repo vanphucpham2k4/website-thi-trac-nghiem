@@ -196,6 +196,15 @@ public class DashboardController {
         return "giao-vien-quan-ly-lop-hoc";
     }
 
+    /**
+     * Trang Xem kết quả chi tiết (giáo viên) — Thống Kê.
+     * URL: GET /dashboard/giao-vien/ket-qua
+     */
+    @GetMapping("/giao-vien/ket-qua")
+    public String trangKetQuaGiaoVien() {
+        return "giao-vien-ket-qua";
+    }
+
     // ========================================
     // 2. API DASHBOARD SINH VIÊN
     // ========================================
