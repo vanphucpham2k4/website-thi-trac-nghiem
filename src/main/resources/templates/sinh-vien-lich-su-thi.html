@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch sử thi - ThiTracNghiem</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .bang-lich-su { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        .bang-lich-su th, .bang-lich-su td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .bang-lich-su th { background: #f8fafc; color: #4a5568; font-weight: 600; }
+        .bang-lich-su tr:hover td { background: #fafbff; }
+        .link-xem { color: #667eea; font-weight: 500; text-decoration: none; }
+        .link-xem:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Đóng menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">MENU CHÍNH</span>
+                <a th:href="@{/dashboard/sinh-vien}" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/lich-su-thi}" class="menu-item active">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Lịch Sử Thi</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/phong-thi}" class="menu-item">
+                    <i class="fas fa-door-open"></i>
+                    <span>Lớp/Phòng Thi</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/mon-hoc}" class="menu-item">
+                    <i class="fas fa-book"></i>
+                    <span>Môn Học</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/sinh-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i>
+                    <span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Lịch sử thi</h1>
+            </div>
+
+            <div class="header-right">
+                <div class="user-info" id="userInfo">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge" id="displayRole">Sinh viên</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-history"></i> Các bài thi đã nộp</h3>
+                </div>
+                <div class="card-body" style="overflow-x:auto;">
+                    <table class="bang-lich-su">
+                        <thead>
+                            <tr>
+                                <th>Đề thi</th>
+                                <th>Môn</th>
+                                <th>Thời gian nộp</th>
+                                <th>Điểm</th>
+                                <th>Đúng/Tổng</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lichSuBody">
+                            <tr><td colspan="6" style="text-align:center;padding:2rem;color:#718096;">Đang tải…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script th:src="@{/js/sinh-vien-lich-su-thi.js}"></script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Sinh Viên - ThiTracNghiem</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .sv-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .sv-toolbar .search-wrap {
+            flex: 1;
+            min-width: 220px;
+            max-width: 420px;
+            position: relative;
+        }
+        .sv-toolbar .search-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            pointer-events: none;
+        }
+        .sv-toolbar .search-wrap input {
+            width: 100%;
+            padding: 10px 14px 10px 40px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .sv-toolbar .search-wrap input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+        .sv-meta {
+            font-size: 0.88rem;
+            color: #718096;
+        }
+        .sv-meta strong { color: #4a5568; }
+        #toastContainer {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            min-width: 280px;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .toast-error { background: #fff5f5; color: #9b2c2c; border-left: 4px solid #f56565; }
+        .empty-state {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: #718096;
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .toast-info { background: #ebf8ff; color: #2a4a6b; border-left: 4px solid #4299e1; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Đóng menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">QUẢN LÝ</span>
+                <a th:href="@{/dashboard/giao-vien}" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/de-thi}" class="menu-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Quản Lý Đề Thi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/ngan-hang-cau-hoi}" class="menu-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Ngân Hàng Câu Hỏi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-sinh-vien}" class="menu-item active">
+                    <i class="fas fa-users"></i>
+                    <span>Quản Lý Sinh Viên</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-lop-hoc}" class="menu-item">
+                    <i class="fas fa-school"></i>
+                    <span>Quản Lý Lớp Học</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/theo-doi-thi}" class="menu-item">
+                    <i class="fas fa-user-check"></i>
+                    <span>Theo Dõi Tham Gia Thi</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Thống Kê</span>
+                </a>
+            </div>
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/giao-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i>
+                    <span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1><i class="fas fa-users" style="color:#667eea;margin-right:10px;"></i>Quản Lý Sinh Viên</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge">Giáo viên</span>
+                    </div>
+                    <div class="user-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="dashboard-card">
+                <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                    <h3><i class="fas fa-list"></i> Danh sách sinh viên</h3>
+                </div>
+                <div class="card-body">
+                    <p class="sv-meta" style="margin: 0 0 12px;">
+                        Hiển thị toàn bộ tài khoản <strong>sinh viên</strong> trong hệ thống.
+                        Cột <strong>Lượt thi (đề của bạn)</strong> đếm số phiên thi trên các đề bạn tạo (chưa xóa mềm).
+                    </p>
+                    <div class="sv-toolbar">
+                        <div class="search-wrap">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="inputTimKiem" placeholder="Tìm theo mã, họ tên, email, số điện thoại…" autocomplete="off">
+                        </div>
+                        <span class="sv-meta" id="labelTongSo">Đang tải…</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="bangSinhVien">
+                            <thead>
+                                <tr>
+                                    <th style="width:52px;">STT</th>
+                                    <th>Mã SV</th>
+                                    <th>Họ và tên</th>
+                                    <th>Email</th>
+                                    <th>Số điện thoại</th>
+                                    <th style="width:160px;text-align:center;">Lượt thi (đề của bạn)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bangSinhVienBody">
+                                <tr><td colspan="6" class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toastContainer"></div>
+    <script th:src="@{/js/giao-vien-quan-ly-sinh-vien.js}"></script>
+</body>
+</html>

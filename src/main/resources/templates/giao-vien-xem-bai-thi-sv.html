@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem bài thi sinh viên - Giáo viên</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .ct-head { margin-bottom: 18px; }
+        .ct-title { font-size: 1.25rem; font-weight: 700; color: #2d3748; margin: 0 0 6px; }
+        .ct-meta { font-size: 0.88rem; color: #718096; margin: 0; }
+        .cau-block {
+            border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;
+            background: #fff;
+        }
+        .cau-block.dung { border-left: 4px solid #38a169; }
+        .cau-block.sai { border-left: 4px solid #e53e3e; }
+        .cau-block.dang-lam { border-left: 4px solid #3182ce; }
+        .cau-block .stt { font-weight: 700; color: #3182ce; margin-bottom: 8px; }
+        .cau-block .noi-dung { color: #2d3748; line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; }
+        .dap-line { font-size: 0.88rem; margin: 4px 0; color: #4a5568; }
+        .dap-line strong { color: #2d3748; }
+        .badge-ok { color: #276749; font-weight: 600; }
+        .badge-bad { color: #c53030; font-weight: 600; }
+        .btn-quay-lai {
+            display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px; padding: 10px 18px;
+            border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; color: #4a5568; font-family: inherit;
+            font-weight: 500; cursor: pointer; text-decoration: none; font-size: 0.88rem;
+        }
+        .btn-quay-lai:hover { border-color: #cbd5e0; background: #f8fafc; }
+    </style>
+</head>
+<body>
+<input type="hidden" id="phienThiIdHidden" th:value="${phienThiId}">
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a th:href="@{/}" class="sidebar-logo">
+            <i class="fas fa-graduation-cap"></i>
+            <span>ThiTracNghiem</span>
+        </a>
+        <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Đóng menu">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <nav class="sidebar-menu">
+        <div class="menu-section">
+            <span class="menu-label">QUẢN LÝ</span>
+            <a th:href="@{/dashboard/giao-vien}" class="menu-item">
+                <i class="fas fa-home"></i><span>Trang Chủ</span>
+            </a>
+            <a th:href="@{/dashboard/giao-vien/theo-doi-thi}" class="menu-item active">
+                <i class="fas fa-user-check"></i><span>Theo Dõi Tham Gia Thi</span>
+            </a>
+            <a th:href="@{/dashboard/giao-vien/de-thi}" class="menu-item">
+                <i class="fas fa-file-alt"></i><span>Quản Lý Đề Thi</span>
+            </a>
+        </div>
+        <div class="menu-section">
+            <span class="menu-label">TÀI KHOẢN</span>
+            <a href="#" class="menu-item logout-btn" id="btnLogout">
+                <i class="fas fa-sign-out-alt"></i><span>Đăng Xuất</span>
+            </a>
+        </div>
+    </nav>
+</aside>
+
+<main class="main-content">
+    <header class="main-header">
+        <div class="header-left">
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Mở menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1><i class="fas fa-eye" style="color:#667eea;margin-right:10px;"></i>Xem bài thi sinh viên</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <div class="user-info-text">
+                    <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                    <span class="user-role-badge">Giáo viên</span>
+                </div>
+                <div class="user-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-content">
+        <a th:href="@{/dashboard/giao-vien/theo-doi-thi}" class="btn-quay-lai">
+            <i class="fas fa-arrow-left"></i> Quay lại theo dõi thi
+        </a>
+        <div id="chiTietRoot">
+            <p style="color:#718096;">Đang tải…</p>
+        </div>
+    </div>
+</main>
+
+<script th:src="@{/js/giao-vien-xem-bai-thi-sv.js}"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Lớp Học - ThiTracNghiem</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .modal-overlay {
+            display: none; position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff; border-radius: 16px;
+            width: 90%; max-width: 560px; max-height: 90vh;
+            overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px 25px; border-bottom: 1px solid #e2e8f0;
+        }
+        .modal-header h3 { font-size: 1.15rem; font-weight: 600; color: #2d3748; margin: 0; }
+        .modal-close { background: none; border: none; font-size: 1.4rem; color: #718096; cursor: pointer; }
+        .modal-close:hover { color: #2d3748; }
+        .modal-body { padding: 25px; }
+        .modal-footer {
+            display: flex; gap: 12px; justify-content: flex-end;
+            padding: 18px 25px; border-top: 1px solid #e2e8f0;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.875rem; font-weight: 500;
+            color: #4a5568; margin-bottom: 6px;
+        }
+        .form-control {
+            width: 100%; padding: 10px 14px;
+            border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-family: 'Poppins', sans-serif; font-size: 0.9rem;
+            color: #2d3748; outline: none;
+        }
+        .form-control:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+        .lop-multi-select {
+            width: 100%; min-height: 220px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            padding: 8px; font-family: inherit; font-size: 0.88rem; background: #fafbfd;
+        }
+        .lop-multi-select:focus { border-color: #667eea; outline: none; }
+        .lop-multi-select option { padding: 6px 10px; }
+        .lop-sv-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .lop-hint { font-size: 0.8rem; color: #718096; margin: 0 0 8px; }
+        #toastContainer {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+            border-radius: 12px; min-width: 280px; max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15); font-size: 0.9rem; font-weight: 500;
+        }
+        .toast-error { background: #fff5f5; color: #9b2c2c; border-left: 4px solid #f56565; }
+        .toast-info { background: #ebf8ff; color: #2a4a6b; border-left: 4px solid #4299e1; }
+        .lop-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .empty-state { text-align: center; padding: 2rem 1rem; color: #718096; }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .btn-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 8px; border: none;
+            cursor: pointer; font-size: 0.9rem; transition: background .15s;
+        }
+        .btn-icon-edit { background: #ebf8ff; color: #2b6cb0; }
+        .btn-icon-edit:hover { background: #bee3f8; }
+        .btn-icon-del { background: #fff5f5; color: #c53030; }
+        .btn-icon-del:hover { background: #fed7d7; }
+        .btn-icon-notify { background: #f0fff4; color: #276749; }
+        .btn-icon-notify:hover { background: #c6f6d5; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Đóng menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">QUẢN LÝ</span>
+                <a th:href="@{/dashboard/giao-vien}" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/de-thi}" class="menu-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Quản Lý Đề Thi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/ngan-hang-cau-hoi}" class="menu-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Ngân Hàng Câu Hỏi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-sinh-vien}" class="menu-item">
+                    <i class="fas fa-users"></i>
+                    <span>Quản Lý Sinh Viên</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-lop-hoc}" class="menu-item active">
+                    <i class="fas fa-school"></i>
+                    <span>Quản Lý Lớp Học</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/theo-doi-thi}" class="menu-item">
+                    <i class="fas fa-user-check"></i>
+                    <span>Theo Dõi Tham Gia Thi</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Thống Kê</span>
+                </a>
+            </div>
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/giao-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i>
+                    <span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1><i class="fas fa-school" style="color:#667eea;margin-right:10px;"></i>Quản Lý Lớp Học</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge">Giáo viên</span>
+                    </div>
+                    <div class="user-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="dashboard-card">
+                <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                    <h3><i class="fas fa-list"></i> Danh sách lớp học</h3>
+                </div>
+                <div class="card-body">
+                    <div class="lop-toolbar">
+                        <button type="button" class="btn btn-primary" id="btnTaoLop">
+                            <i class="fas fa-plus"></i> Tạo lớp học mới
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="bangLopHoc">
+                            <thead>
+                                <tr>
+                                    <th style="width:52px;">STT</th>
+                                    <th>Tên lớp</th>
+                                    <th style="width:90px;text-align:center;">Sĩ số</th>
+                                    <th>Chủ trì</th>
+                                    <th style="width:180px;">Thời gian tạo</th>
+                                    <th style="width:160px;text-align:center;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bangLopHocBody">
+                                <tr><td colspan="6" class="empty-state"><i class="fas fa-spinner fa-spin"></i><br>Đang tải…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal tạo / sửa lớp -->
+    <div class="modal-overlay" id="modalLopHoc">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalLopHocTitle"><i class="fas fa-plus-circle" style="color:#667eea;margin-right:8px;"></i>Tạo lớp học mới</h3>
+                <button type="button" class="modal-close" id="modalLopHocClose" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="inputTenLop">Lớp <span style="color:#f56565;">*</span></label>
+                    <input type="text" id="inputTenLop" class="form-control" maxlength="200" placeholder="Nhập tên lớp" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="selectSinhVien">Thêm sinh viên</label>
+                    <p class="lop-hint">Danh sách đồng bộ với Quản lý sinh viên. Giữ <strong>Ctrl</strong> (Windows) hoặc <strong>Cmd</strong> (Mac) để chọn nhiều.</p>
+                    <div class="lop-sv-toolbar">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btnThemTatCaSv">Thêm tất cả</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btnBoChonSv">Bỏ chọn tất cả</button>
+                    </div>
+                    <select id="selectSinhVien" class="lop-multi-select" multiple size="12" aria-label="Chọn sinh viên"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" id="modalLopHocHuy">Hủy</button>
+                <button type="button" class="btn btn-primary btn-sm" id="modalLopHocLuu">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Xác nhận xóa -->
+    <div class="modal-overlay" id="modalXoaLop">
+        <div class="modal" style="max-width:420px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle" style="color:#ed8936;margin-right:8px;"></i>Xóa lớp học</h3>
+                <button type="button" class="modal-close" id="modalXoaLopClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalXoaLopText" style="margin:0;color:#4a5568;line-height:1.5;">Bạn có chắc muốn xóa lớp này?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" id="modalXoaLopHuy">Hủy</button>
+                <button type="button" class="btn btn-primary btn-sm" id="modalXoaLopOk" style="background:#e53e3e;border-color:#e53e3e;">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+    <script th:src="@{/js/giao-vien-quan-ly-lop-hoc.js}"></script>
+</body>
+</html>

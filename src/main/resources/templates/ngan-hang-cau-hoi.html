@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ngân Hàng Câu Hỏi - Hệ Thống Thi Trắc Nghiệm</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none; position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff; border-radius: 16px;
+            width: 90%; max-width: 700px; max-height: 90vh;
+            overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideDown 0.2s ease;
+        }
+        @keyframes slideDown {
+            from { opacity:0; transform: translateY(-30px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px 25px; border-bottom: 1px solid #e2e8f0;
+        }
+        .modal-header h3 { font-size: 1.15rem; font-weight: 600; color: #2d3748; }
+        .modal-close { background: none; border: none; font-size: 1.4rem; color: #718096; cursor: pointer; }
+        .modal-close:hover { color: #2d3748; }
+        .modal-body { padding: 25px; }
+        .modal-footer {
+            display: flex; gap: 12px; justify-content: flex-end;
+            padding: 18px 25px; border-top: 1px solid #e2e8f0;
+        }
+
+        /* ===== FORM ===== */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.875rem; font-weight: 500;
+            color: #4a5568; margin-bottom: 6px;
+        }
+        .form-group label .required { color: #f56565; }
+        .form-control {
+            width: 100%; padding: 10px 14px;
+            border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-family: 'Poppins', sans-serif; font-size: 0.9rem;
+            color: #2d3748; transition: border-color 0.2s; outline: none;
+        }
+        .form-control:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+        .form-control.error { border-color: #f56565; }
+        .error-text { color: #f56565; font-size: 0.8rem; margin-top: 4px; }
+        textarea.form-control { resize: vertical; min-height: 90px; }
+        select.form-control { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23718096' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+        /* ===== ANSWER OPTIONS GRID ===== */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+        .option-input-wrap { display: flex; align-items: center; gap: 8px; }
+        .option-letter {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #667eea; color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+        }
+        .option-letter.B { background: #48bb78; }
+        .option-letter.C { background: #ed8936; }
+        .option-letter.D { background: #f56565; }
+
+        /* ===== DIFFICULTY BADGE ===== */
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-de      { background: #d1fae5; color: #065f46; }
+        .badge-tb      { background: #fef3c7; color: #92400e; }
+        .badge-kho     { background: #fee2e2; color: #991b1b; }
+        .badge-tracnghiem { background: #ebf8ff; color: #2a4a6b; }
+        .badge-dungsai { background: #faf5ff; color: #553c9a; }
+
+        /* ===== FILTER PANEL ===== */
+        .filter-panel {
+            background: #f8fafc; border-radius: 12px;
+            padding: 18px 20px; margin-bottom: 20px;
+        }
+        .filter-panel-title {
+            font-size: 0.85rem; font-weight: 600; color: #4a5568;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .filter-grid { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 12px; align-items: end; }
+        .filter-grid .form-group { margin-bottom: 0; }
+
+        /* ===== TABLE ACTION BUTTONS ===== */
+        .btn-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 8px;
+            border: none; cursor: pointer; font-size: 0.85rem; transition: all 0.15s;
+        }
+        .btn-icon-edit   { background: #ebf8ff; color: #3182ce; }
+        .btn-icon-delete { background: #fff5f5; color: #e53e3e; }
+        .btn-icon:hover  { opacity: 0.8; transform: scale(1.05); }
+
+        /* ===== TOAST ===== */
+        #toastContainer {
+            position: fixed; bottom: 24px; right: 24px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 9999;
+        }
+        .toast {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 18px; border-radius: 12px;
+            min-width: 280px; max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            animation: toastIn 0.3s ease; font-size: 0.9rem; font-weight: 500;
+        }
+        .toast-success { background: #f0fff4; color: #276749; border-left: 4px solid #48bb78; }
+        .toast-error   { background: #fff5f5; color: #9b2c2c; border-left: 4px solid #f56565; }
+        .toast-info    { background: #ebf8ff; color: #2a4a6b; border-left: 4px solid #4299e1; }
+        @keyframes toastIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+
+        /* ===== TOPIC MODAL ===== */
+        .topic-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; background: #ebf8ff; color: #2b6cb0;
+            border-radius: 999px; font-size: 0.82rem; margin: 4px;
+        }
+
+        /* ===== QUESTION PREVIEW (in table) ===== */
+        .question-preview {
+            max-width: 320px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        .confirm-icon { text-align: center; font-size: 3rem; margin-bottom: 12px; }
+        .confirm-msg  { text-align: center; color: #4a5568; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i><span>ThiTracNghiem</span>
+            </a>
+            <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">QUẢN LÝ</span>
+                <a th:href="@{/dashboard/giao-vien}" class="menu-item">
+                    <i class="fas fa-home"></i><span>Trang Chủ</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/de-thi}" class="menu-item">
+                    <i class="fas fa-file-alt"></i><span>Quản Lý Đề Thi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/ngan-hang-cau-hoi}" class="menu-item active">
+                    <i class="fas fa-question-circle"></i><span>Ngân Hàng Câu Hỏi</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-sinh-vien}" class="menu-item">
+                    <i class="fas fa-users"></i><span>Quản Lý Sinh Viên</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/quan-ly-lop-hoc}" class="menu-item">
+                    <i class="fas fa-school"></i><span>Quản Lý Lớp Học</span>
+                </a>
+                <a th:href="@{/dashboard/giao-vien/theo-doi-thi}" class="menu-item">
+                    <i class="fas fa-user-check"></i><span>Theo Dõi Tham Gia Thi</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-chart-bar"></i><span>Thống Kê</span>
+                </a>
+            </div>
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/giao-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i><span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i><span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+                <h1><i class="fas fa-question-circle" style="color:#667eea;margin-right:10px;"></i>Ngân Hàng Câu Hỏi</h1>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-secondary btn-sm" id="btnQuanLyChuDe" onclick="moModalChuDe()">
+                    <i class="fas fa-tags"></i> Quản Lý Chủ Đề
+                </button>
+                <button class="btn btn-primary btn-sm" id="btnThemCauHoi" onclick="moModalCauHoi(null)">
+                    <i class="fas fa-plus"></i> Thêm Câu Hỏi
+                </button>
+                <div class="user-info">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge">Giáo viên</span>
+                    </div>
+                    <div class="user-avatar"><i class="fas fa-chalkboard-teacher"></i></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <!-- Stats row -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTong">0</span>
+                        <span class="stat-label">Tổng Câu Hỏi</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#48bb78,#38a169);">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statDe">0</span>
+                        <span class="stat-label">Câu Dễ</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#f6ad55,#ed8936);">
+                        <i class="fas fa-meh"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statTB">0</span>
+                        <span class="stat-label">Trung Bình</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:linear-gradient(135deg,#f56565,#e53e3e);">
+                        <i class="fas fa-frown"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="statKho">0</span>
+                        <span class="stat-label">Câu Khó</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Panel -->
+            <div class="filter-panel">
+                <div class="filter-panel-title">
+                    <i class="fas fa-filter"></i> Bộ Lọc Câu Hỏi
+                </div>
+                <div class="filter-grid">
+                    <div class="form-group">
+                        <label>Môn Học</label>
+                        <select class="form-control" id="filterMonHoc" onchange="onMonHocChange()">
+                            <option value="">Tất cả môn</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Chủ Đề</label>
+                        <select class="form-control" id="filterChuDe" onchange="applyFilter()">
+                            <option value="">Tất cả chủ đề</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Độ Khó</label>
+                        <select class="form-control" id="filterDoKho" onchange="applyFilter()">
+                            <option value="">Tất cả độ khó</option>
+                            <option value="DE">😊 Dễ</option>
+                            <option value="TRUNG_BINH">😐 Trung Bình</option>
+                            <option value="KHO">😤 Khó</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tìm Kiếm</label>
+                        <input type="search" class="form-control" id="filterKeyword"
+                               placeholder="Nội dung câu hỏi..." oninput="debounceFilter()">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="resetFilter()">
+                            <i class="fas fa-undo"></i> Đặt Lại
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question table -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Danh Sách Câu Hỏi
+                        <span id="questionCount" style="font-size:0.8rem;color:#718096;font-weight:400;margin-left:10px;">(0 câu hỏi)</span>
+                    </h3>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <select class="form-control" id="pageSize" onchange="applyFilter()" style="width:auto;padding:6px 10px;font-size:0.85rem;">
+                            <option value="20">20 / trang</option>
+                            <option value="50">50 / trang</option>
+                            <option value="100">100 / trang</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="overflow-x:auto;">
+                    <table class="data-table" id="cauHoiTable">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>Nội Dung Câu Hỏi</th>
+                                <th>Môn / Chủ Đề</th>
+                                <th>Loại</th>
+                                <th>Độ Khó</th>
+                                <th>Đáp Án</th>
+                                <th>Dùng trong</th>
+                                <th style="width:90px;">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cauHoiBody">
+                            <tr><td colspan="8" style="text-align:center;padding:40px;color:#a0aec0;">
+                                <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid #e2e8f0;">
+                    <span id="paginationInfo" style="font-size:0.85rem;color:#718096;"></span>
+                    <div id="paginationBtns" style="display:flex;gap:6px;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== MODAL: THÊM / SỬA CÂU HỎI ===== -->
+    <div class="modal-overlay" id="modalCauHoi">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalCauHoiTitle"><i class="fas fa-plus-circle" style="color:#667eea;margin-right:8px;"></i>Thêm Câu Hỏi Mới</h3>
+                <button class="modal-close" onclick="dongModal('modalCauHoi')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editCauHoiId">
+
+                <!-- Question content -->
+                <div class="form-group">
+                    <label>Nội Dung Câu Hỏi <span class="required">*</span></label>
+                    <textarea class="form-control" id="inputNoiDung" rows="3" placeholder="Nhập nội dung câu hỏi..."></textarea>
+                    <div class="error-text" id="errNoiDung"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Môn Học <span class="required">*</span></label>
+                        <select class="form-control" id="inputMonHoc" onchange="loadChuDeModal()">
+                            <option value="">-- Chọn môn học --</option>
+                        </select>
+                        <div class="error-text" id="errMonHoc"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Chủ Đề <span class="required">*</span>
+                            <button type="button" style="background:none;border:none;color:#667eea;font-size:0.75rem;cursor:pointer;margin-left:6px;" onclick="moModalTaoChuDeNhanh()">
+                                + Tạo mới
+                            </button>
+                        </label>
+                        <select class="form-control" id="inputChuDe">
+                            <option value="">-- Chọn chủ đề --</option>
+                        </select>
+                        <div class="error-text" id="errChuDe"></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Loại Câu Hỏi <span class="required">*</span></label>
+                        <select class="form-control" id="inputLoai" onchange="onLoaiChange()">
+                            <option value="TRAC_NGHIEM">Trắc nghiệm (4 lựa chọn)</option>
+                            <option value="DUNG_SAI">Đúng / Sai</option>
+                            <option value="TU_LUAN">Tự luận</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Độ Khó <span class="required">*</span></label>
+                        <select class="form-control" id="inputDoKho">
+                            <option value="DE">😊 Dễ</option>
+                            <option value="TRUNG_BINH">😐 Trung Bình</option>
+                            <option value="KHO">😤 Khó</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- MCQ options -->
+                <div id="mcqSection">
+                    <div class="form-group">
+                        <label>Các Lựa Chọn <span class="required">*</span></label>
+                        <div class="options-grid">
+                            <div class="option-input-wrap">
+                                <span class="option-letter">A</span>
+                                <input type="text" class="form-control" id="inputA" placeholder="Lựa chọn A">
+                            </div>
+                            <div class="option-input-wrap">
+                                <span class="option-letter B">B</span>
+                                <input type="text" class="form-control" id="inputB" placeholder="Lựa chọn B">
+                            </div>
+                            <div class="option-input-wrap">
+                                <span class="option-letter C">C</span>
+                                <input type="text" class="form-control" id="inputC" placeholder="Lựa chọn C (không bắt buộc)">
+                            </div>
+                            <div class="option-input-wrap">
+                                <span class="option-letter D">D</span>
+                                <input type="text" class="form-control" id="inputD" placeholder="Lựa chọn D (không bắt buộc)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Đáp Án Đúng <span class="required">*</span></label>
+                        <div style="display:flex;gap:16px;margin-top:6px;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="radio" name="dapAnMCQ" value="A" id="rdA" checked> A
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="radio" name="dapAnMCQ" value="B" id="rdB"> B
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="radio" name="dapAnMCQ" value="C" id="rdC"> C
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="radio" name="dapAnMCQ" value="D" id="rdD"> D
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- True/False options -->
+                <div id="dungSaiSection" style="display:none;">
+                    <div class="form-group">
+                        <label>Đáp Án Đúng <span class="required">*</span></label>
+                        <select class="form-control" id="inputDungSai">
+                            <option value="Đúng">Đúng</option>
+                            <option value="Sai">Sai</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Essay answer -->
+                <div id="tuLuanSection" style="display:none;">
+                    <div class="form-group">
+                        <label>Đáp Án Mẫu (tự luận)</label>
+                        <textarea class="form-control" id="inputTuLuan" rows="3" placeholder="Gợi ý đáp án hoặc rubric chấm điểm..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="dongModal('modalCauHoi')">Hủy</button>
+                <button class="btn btn-primary btn-sm" onclick="luuCauHoi()">
+                    <i class="fas fa-save"></i> Lưu Câu Hỏi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: QUẢN LÝ CHỦ ĐỀ ===== -->
+    <div class="modal-overlay" id="modalChuDe">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-tags" style="color:#667eea;margin-right:8px;"></i>Quản Lý Chủ Đề</h3>
+                <button class="modal-close" onclick="dongModal('modalChuDe')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Create new topic -->
+                <div style="background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:18px;">
+                    <h4 style="font-size:0.9rem;font-weight:600;color:#4a5568;margin-bottom:12px;">Tạo Chủ Đề Mới</h4>
+                    <div class="form-row">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Môn Học</label>
+                            <select class="form-control" id="newChuDeMonHoc" onchange="loadChuDeList()">
+                                <option value="">-- Chọn môn học --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Tên Chủ Đề</label>
+                            <div style="display:flex;gap:8px;">
+                                <input type="text" class="form-control" id="newChuDeTen" placeholder="VD: Đại số tuyến tính">
+                                <button class="btn btn-primary btn-sm" style="white-space:nowrap;" onclick="taoChuDe()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic list by subject -->
+                <div>
+                    <h4 style="font-size:0.9rem;font-weight:600;color:#4a5568;margin-bottom:10px;">Danh Sách Chủ Đề</h4>
+                    <select class="form-control" id="chuDeViewMonHoc" onchange="loadChuDeList()" style="margin-bottom:12px;width:auto;min-width:200px;">
+                        <option value="">-- Tất cả môn --</option>
+                    </select>
+                    <div id="chuDeList" style="display:flex;flex-wrap:wrap;gap:6px;min-height:50px;">
+                        <span style="color:#a0aec0;font-size:0.85rem;">Chọn môn học để xem chủ đề...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-sm" onclick="dongModal('modalChuDe')">Xong</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: TẠO CHỦ ĐỀ NHANH ===== -->
+    <div class="modal-overlay" id="modalTaoChuDeNhanh">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus" style="color:#667eea;margin-right:8px;"></i>Tạo Chủ Đề Mới</h3>
+                <button class="modal-close" onclick="dongModal('modalTaoChuDeNhanh')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Môn Học <span class="required">*</span></label>
+                    <select class="form-control" id="nhanh_monHoc">
+                        <option value="">-- Chọn môn học --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tên Chủ Đề <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="nhanh_ten" placeholder="Tên chủ đề mới">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="dongModal('modalTaoChuDeNhanh')">Hủy</button>
+                <button class="btn btn-primary btn-sm" onclick="luuChuDeNhanh()">
+                    <i class="fas fa-save"></i> Tạo Chủ Đề
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: XÁC NHẬN XÓA ===== -->
+    <div class="modal-overlay" id="modalConfirmXoa">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-body" style="padding:30px 25px;">
+                <div class="confirm-icon">🗑️</div>
+                <div class="confirm-msg">
+                    Bạn có chắc muốn xóa câu hỏi này?
+                    <br><small style="color:#718096;margin-top:8px;display:block;">Hành động này không thể hoàn tác.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="dongModal('modalConfirmXoa')">Hủy</button>
+                <button class="btn btn-sm" style="background:#f56565;color:#fff;" id="btnXacNhanXoa" onclick="xacNhanXoa()">
+                    <i class="fas fa-trash-alt"></i> Xóa
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST CONTAINER ===== -->
+    <div id="toastContainer"></div>
+
+    <script th:src="@{/js/ngan-hang-cau-hoi.js}"></script>
+</body>
+</html>

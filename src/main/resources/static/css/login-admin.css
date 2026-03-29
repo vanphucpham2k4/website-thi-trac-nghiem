@@ -1,0 +1,581 @@
+/*
+ * login-admin.css - CSS cho trang ĐĂNG NHẬP ADMIN
+ * Giao diện riêng cho tài khoản quản trị viên
+ */
+
+/* ============================================
+   1. BIẾN CSS
+   ============================================ */
+:root {
+    --admin-primary: #2d3748;
+    --admin-secondary: #4a5568;
+    --admin-accent: #ed8936;
+    --admin-accent-dark: #dd6b20;
+    --admin-success: #48bb78;
+    --admin-error: #fc8181;
+    --admin-bg: #f7fafc;
+    --admin-card: #ffffff;
+    --admin-border: #e2e8f0;
+    --admin-text: #2d3748;
+    --admin-text-light: #718096;
+    --admin-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    --admin-radius: 16px;
+    --transition: all 0.3s ease;
+}
+
+/* ============================================
+   2. RESET
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--admin-text);
+    background-color: var(--admin-bg);
+    min-height: 100vh;
+}
+
+/* ============================================
+   3. ADMIN LOGIN WRAPPER (Container chính)
+   ============================================ */
+.admin-login-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ============================================
+   4. ADMIN PANEL (Panel bên trái - màu tối)
+   ============================================ */
+.admin-panel {
+    flex: 1;
+    background: linear-gradient(160deg, var(--admin-primary) 0%, #1a202c 60%, #2d3748 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background pattern */
+.admin-panel::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 70%, rgba(237, 137, 54, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(72, 187, 120, 0.06) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.admin-panel::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    right: -100px;
+    width: 400px;
+    height: 400px;
+    border: 80px solid rgba(237, 137, 54, 0.05);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.admin-panel-content {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    width: 100%;
+}
+
+/* Logo */
+.admin-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 50px;
+}
+
+.admin-logo i {
+    font-size: 2.8rem;
+    color: var(--admin-accent);
+}
+
+.admin-tag {
+    font-size: 0.8rem;
+    background-color: var(--admin-accent);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+/* Tiêu đề panel */
+.admin-panel-content h1 {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+    margin-bottom: 16px;
+}
+
+.admin-panel-content > p {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 50px;
+    line-height: 1.8;
+}
+
+/* Thống kê nhanh */
+.admin-quick-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: var(--transition);
+}
+
+.stat-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.stat-item i {
+    font-size: 1.6rem;
+    color: var(--admin-accent);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   5. ADMIN FORM SIDE (Form bên phải - sáng)
+   ============================================ */
+.admin-form-side {
+    flex: 0 0 480px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 30px;
+    background-color: var(--admin-bg);
+}
+
+.admin-form-wrapper {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Tiêu đề form */
+.form-header {
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+.admin-badge {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--admin-accent) 0%, var(--admin-accent-dark) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 24px rgba(237, 137, 54, 0.3);
+}
+
+.admin-badge i {
+    font-size: 2rem;
+    color: #ffffff;
+}
+
+.form-header h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--admin-text);
+    margin-bottom: 8px;
+}
+
+.form-header p {
+    font-size: 0.95rem;
+    color: var(--admin-text-light);
+}
+
+/* ============================================
+   6. FORM GROUPS
+   ============================================ */
+.form-group {
+    margin-bottom: 22px;
+    position: relative;
+}
+
+.form-group > label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--admin-text);
+    font-size: 0.95rem;
+}
+
+.form-group > label i {
+    margin-right: 8px;
+    color: var(--admin-accent);
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--admin-border);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: var(--transition);
+    background-color: var(--admin-card);
+    color: var(--admin-text);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.1);
+}
+
+.form-group input.error {
+    border-color: var(--admin-error);
+}
+
+/* Password wrapper */
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 50px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--admin-text-light);
+    cursor: pointer;
+    padding: 5px 10px;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.toggle-password:hover {
+    color: var(--admin-accent);
+}
+
+/* Thông báo lỗi */
+.field-message {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: var(--admin-error);
+    min-height: 20px;
+}
+
+/* ============================================
+   7. CAPTCHA
+   ============================================ */
+.captcha-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: stretch;
+    width: 100%;
+    overflow-x: auto;
+}
+
+.captcha-question {
+    flex: 1 1 auto;
+    min-width: max-content;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--admin-bg) 0%, var(--admin-card) 100%);
+    border: 2px solid var(--admin-border);
+    border-radius: 10px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--admin-accent);
+    user-select: none;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+}
+
+.captcha-container input[type="number"] {
+    width: 10rem;
+    min-width: 8.5rem;
+    max-width: 100%;
+    flex: 0 1 auto;
+    padding: 14px 10px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: 2px solid var(--admin-border);
+    border-radius: 10px;
+    transition: var(--transition);
+    background-color: var(--admin-card);
+    color: var(--admin-text);
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.captcha-container input[type="number"]::-webkit-outer-spin-button,
+.captcha-container input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.captcha-container input[type="number"]:focus {
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.1);
+    outline: none;
+}
+
+.btn-refresh-captcha {
+    flex: 0 0 auto;
+    padding: 14px;
+    background-color: var(--admin-card);
+    border: 2px solid var(--admin-border);
+    border-radius: 10px;
+    color: var(--admin-text-light);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-refresh-captcha:hover {
+    background-color: var(--admin-accent);
+    border-color: var(--admin-accent);
+    color: #ffffff;
+}
+
+.loading-text {
+    font-size: 0.9rem;
+    color: var(--admin-text-light);
+    font-weight: 400;
+}
+
+/* ============================================
+   8. SUBMIT BUTTON
+   ============================================ */
+.btn-submit {
+    width: 100%;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, var(--admin-accent) 0%, var(--admin-accent-dark) 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+    box-shadow: 0 4px 15px rgba(237, 137, 54, 0.3);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(237, 137, 54, 0.4);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+.btn-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-submit.loading .btn-text {
+    display: none;
+}
+
+.btn-submit.loading .btn-loader {
+    display: flex;
+}
+
+.btn-loader {
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================
+   9. MESSAGE BOX
+   ============================================ */
+.message-box {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 10px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-box.error {
+    background-color: rgba(252, 129, 129, 0.1);
+    border: 1px solid var(--admin-error);
+    color: #c53030;
+}
+
+.message-box.success {
+    background-color: rgba(72, 187, 120, 0.1);
+    border: 1px solid var(--admin-success);
+    color: #276749;
+}
+
+.message-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+}
+
+.message-icon {
+    font-size: 1.1rem;
+}
+
+.message-box.error .message-icon::before {
+    content: '\f071';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+}
+
+.message-box.success .message-icon::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+}
+
+/* ============================================
+   10. LINKS
+   ============================================ */
+.back-to-user {
+    text-align: center;
+    margin-top: 24px;
+}
+
+.back-to-user a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    color: var(--admin-accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.back-to-user a:hover {
+    color: var(--admin-accent-dark);
+    text-decoration: underline;
+}
+
+.back-home {
+    text-align: center;
+    margin-top: 12px;
+}
+
+.back-home a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--admin-text-light);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.back-home a:hover {
+    color: var(--admin-accent);
+}
+
+/* ============================================
+   11. RESPONSIVE
+   ============================================ */
+@media (max-width: 900px) {
+    .admin-panel {
+        display: none;
+    }
+
+    .admin-form-side {
+        flex: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-form-side {
+        padding: 30px 20px;
+    }
+
+    .form-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .captcha-container input[type="number"] {
+        width: 9rem;
+        min-width: 7.5rem;
+        font-size: 1rem;
+    }
+
+    .captcha-question {
+        font-size: 1rem;
+        padding: 12px 10px;
+    }
+
+    .btn-refresh-captcha {
+        padding: 12px;
+    }
+}

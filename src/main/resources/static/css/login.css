@@ -1,0 +1,889 @@
+/*
+ * login.css - File CSS cho trang ĐĂNG NHẬP và ĐĂNG KÝ
+ * Chứa các kiểu dáng cho form xác thực người dùng
+ */
+
+/* ============================================
+   1. BIẾN CSS (CSS Variables)
+   ============================================ */
+:root {
+    /* Màu chính - Xanh dương tím (Purple Blue) */
+    --primary-color: #667eea;
+    --primary-dark: #5a67d8;
+    --primary-light: #7f9cf5;
+
+    /* Màu phụ - Xanh lá nhạt */
+    --secondary-color: #48bb78;
+
+    /* Màu trạng thái */
+    --success-color: #48bb78;
+    --warning-color: #ed8936;
+    --error-color: #f56565;
+    --info-color: #4299e1;
+
+    /* Màu nền */
+    --bg-color: #ffffff;
+    --bg-light: #f7fafc;
+    --bg-dark: #1a202c;
+
+    /* Màu chữ */
+    --text-color: #2d3748;
+    --text-light: #718096;
+    --text-muted: #a0aec0;
+    --text-white: #ffffff;
+
+    /* Border */
+    --border-color: #e2e8f0;
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /* Border radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-full: 50%;
+
+    /* Transitions */
+    --transition-fast: all 0.2s ease;
+    --transition-normal: all 0.3s ease;
+}
+
+/* ============================================
+   2. RESET VÀ BASE
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--bg-light);
+    min-height: 100vh; /* Đảm bảo body cao tối thiểu bằng màn hình */
+}
+
+/* ============================================
+   3. AUTH CONTAINER (Container chính)
+   ============================================ */
+/* Container chính chia đôi: hình ảnh bên trái, form bên phải */
+.auth-container {
+    display: flex;
+    min-height: 100vh; /* Chiều cao toàn màn hình */
+}
+
+/* ============================================
+   4. AUTH IMAGE (Phần hình ảnh bên trái)
+   ============================================ */
+/* Nửa trái của trang - hiển thị hình ảnh và thông tin giới thiệu */
+.auth-image {
+    flex: 1; /* Chiếm 1 nửa không gian */
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background pattern cho phần hình ảnh */
+.auth-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Container chứa nội dung trong phần hình ảnh */
+.auth-image-content {
+    text-align: center;
+    color: var(--text-white);
+    max-width: 450px;
+    z-index: 1; /* Đảm bảo nằm trên background */
+}
+
+/* Logo trong phần hình ảnh */
+.auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 40px;
+}
+
+.auth-logo i {
+    font-size: 3rem; /* Icon lớn hơn text */
+}
+
+/* Tiêu đề trong phần hình ảnh */
+.auth-image-content h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    line-height: 1.3;
+}
+
+/* Mô tả trong phần hình ảnh */
+.auth-image-content > p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 40px;
+    line-height: 1.8;
+}
+
+/* Container chứa các tính năng */
+.auth-features {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    text-align: left;
+}
+
+/* Mỗi tính năng trong danh sách */
+.auth-feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+}
+
+.auth-feature i {
+    font-size: 1.2rem;
+    color: var(--secondary-color); /* Icon màu xanh lá */
+}
+
+/* ============================================
+   5. AUTH FORM CONTAINER (Phần form bên phải)
+   ============================================ */
+/* Nửa phải của trang - chứa form đăng nhập/đăng ký */
+.auth-form-container {
+    flex: 1; /* Chiếm 1 nửa không gian */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background-color: var(--bg-color);
+}
+
+/* Wrapper chứa form */
+.auth-form-wrapper {
+    width: 100%;
+    max-width: 420px; /* Chiều rộng tối đa của form */
+}
+
+/* ============================================
+   6. FORM HEADER (Tiêu đề form)
+   ============================================ */
+/* Tiêu đề của form */
+.form-header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.form-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.form-header p {
+    font-size: 1rem;
+    color: var(--text-light);
+}
+
+/* ============================================
+   7. FORM GROUPS (Nhóm form input)
+   ============================================ */
+/* Nhóm form input */
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+/* Nhãn (label) của input */
+.form-group > label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.form-group > label i {
+    margin-right: 8px;
+    color: var(--primary-color);
+}
+
+/* Input fields */
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="tel"],
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: var(--transition-fast);
+    background-color: var(--bg-color);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Input khi có lỗi */
+.form-group input.error {
+    border-color: var(--error-color);
+}
+
+.form-group input.error:focus {
+    box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.1);
+}
+
+/* Input khi hợp lệ */
+.form-group input.valid {
+    border-color: var(--success-color);
+}
+
+/* Input icon (check/x) */
+.input-icon {
+    position: absolute;
+    right: 15px;
+    top: 42px;
+    font-size: 1.1rem;
+    display: none !important;
+    pointer-events: none;
+}
+
+.input-icon.valid {
+    color: var(--success-color);
+}
+
+.input-icon.invalid {
+    color: var(--error-color);
+}
+
+/* Chỉ hiện icon khi input cùng form-group có trạng thái validate */
+.form-group input.error ~ .input-icon.invalid {
+    display: inline-block !important;
+}
+
+.form-group input.valid ~ .input-icon.valid {
+    display: inline-block !important;
+}
+
+/* Thông báo lỗi dưới input */
+.field-message {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: var(--error-color);
+    min-height: 20px;
+}
+
+/* Row chứa 2 input cạnh nhau (Họ và Tên) */
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-row .form-group.half {
+    flex: 1;
+}
+
+/* ============================================
+   8. PASSWORD INPUT (Input mật khẩu)
+   ============================================ */
+/* Wrapper chứa input mật khẩu và nút hiện/ẩn */
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 50px; /* Chừa chỗ cho nút toggle */
+}
+
+/* Nút hiện/ẩn mật khẩu */
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 5px 10px;
+    font-size: 1rem;
+    transition: var(--transition-fast);
+}
+
+.toggle-password:hover {
+    color: var(--primary-color);
+}
+
+/* ============================================
+   9. ROLE SELECTOR (Chọn vai trò)
+   ============================================ */
+/* Container chọn vai trò */
+.role-selector {
+    display: flex;
+    gap: 15px;
+}
+
+/* Mỗi option vai trò */
+.role-option {
+    flex: 1;
+    cursor: pointer;
+}
+
+/* Ẩn radio button gốc */
+.role-option input[type="radio"] {
+    display: none;
+}
+
+/* Card hiển thị vai trò */
+.role-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 15px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: var(--transition-normal);
+    background-color: var(--bg-color);
+}
+
+.role-card i {
+    font-size: 2rem;
+    color: var(--text-light);
+    transition: var(--transition-normal);
+}
+
+.role-card span {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+/* Style khi radio được chọn */
+.role-option input[type="radio"]:checked + .role-card {
+    border-color: var(--primary-color);
+    background-color: rgba(102, 126, 234, 0.05);
+}
+
+.role-option input[type="radio"]:checked + .role-card i {
+    color: var(--primary-color);
+}
+
+/* Hover effect */
+.role-card:hover {
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   10. CAPTCHA (một hàng ngang: câu hỏi | ô nhập | nút làm mới)
+   ============================================ */
+/* Container CAPTCHA — luôn xếp ngang, không để ô câu hỏi bị co hẹp gây xuống dòng từng ký tự */
+.captcha-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto; /* Màn hình rất hẹp: cuộn ngang thay vì xếp chữ dọc */
+}
+
+/* Câu hỏi CAPTCHA — một dòng; min-width: max-content tránh flex co ô quá hẹp làm chữ xếp dọc */
+.captcha-question {
+    flex: 1 1 auto;
+    min-width: max-content;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--bg-light) 0%, var(--bg-color) 100%);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1.15rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--primary-color);
+    user-select: none; /* Không cho phép copy text */
+    white-space: nowrap; /* Giữ biểu thức trên một hàng ngang */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+}
+
+/* Input nhập đáp án CAPTCHA — đủ rộng cho placeholder "Nhập kết quả" (đăng ký) và "Kết quả" (đăng nhập) */
+.captcha-container input[type="number"] {
+    width: 12.5rem;
+    min-width: 12rem;
+    max-width: 100%;
+    flex: 0 1 auto;
+    padding-left: 10px;
+    padding-right: 10px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    /* Ẩn mũi tên tăng/giảm (spinner) để không đè lên placeholder */
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.captcha-container input[type="number"]::-webkit-outer-spin-button,
+.captcha-container input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Nút làm mới CAPTCHA */
+.btn-refresh-captcha {
+    flex: 0 0 auto;
+    padding: 14px;
+    background-color: var(--bg-light);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-refresh-captcha:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--text-white);
+}
+
+.btn-refresh-captcha i {
+    font-size: 1rem;
+}
+
+/* Loading text cho CAPTCHA */
+.loading-text {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    font-weight: 400;
+}
+
+/* ============================================
+   11. FORM OPTIONS (Tùy chọn form)
+   ============================================ */
+/* Container chứa checkbox và link quên mật khẩu */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+/* Checkbox ghi nhớ đăng nhập */
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    user-select: none;
+}
+
+.remember-me input[type="checkbox"] {
+    display: none;
+}
+
+/* Custom checkbox */
+.remember-me .checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.remember-me input:checked + .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.remember-me input:checked + .checkmark::after {
+    content: '\f00c'; /* Font Awesome check icon */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: white;
+    font-size: 0.75rem;
+}
+
+/* Link quên mật khẩu */
+.forgot-password {
+    font-size: 0.95rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.forgot-password:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* ============================================
+   12. TERMS CHECKBOX
+   ============================================ */
+/* Container điều khoản */
+.terms-group {
+    margin-bottom: 25px;
+}
+
+.terms-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    user-select: none;
+}
+
+.terms-label input[type="checkbox"] {
+    display: none;
+}
+
+.terms-label .checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.terms-label input:checked + .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.terms-label input:checked + .checkmark::after {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: white;
+    font-size: 0.75rem;
+}
+
+.terms-label a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.terms-label a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   13. SUBMIT BUTTON (Nút submit)
+   ============================================ */
+/* Nút đăng nhập/đăng ký */
+.btn-submit {
+    width: 100%;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--text-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+/* Nút disabled */
+.btn-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Loading state */
+.btn-submit.loading .btn-text {
+    display: none;
+}
+
+.btn-submit.loading .btn-loader {
+    display: flex;
+}
+
+.btn-loader {
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================
+   14. MESSAGE BOX (Hộp thông báo)
+   ============================================ */
+/* Hộp thông báo lỗi/thành công */
+.message-box {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: var(--radius-sm);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Thông báo thành công */
+.message-box.success {
+    background-color: rgba(72, 187, 120, 0.1);
+    border: 1px solid var(--success-color);
+    color: var(--success-color);
+}
+
+/* Thông báo lỗi */
+.message-box.error {
+    background-color: rgba(245, 101, 101, 0.1);
+    border: 1px solid var(--error-color);
+    color: var(--error-color);
+}
+
+/* Thông báo cảnh báo */
+.message-box.warning {
+    background-color: rgba(237, 137, 54, 0.1);
+    border: 1px solid var(--warning-color);
+    color: var(--warning-color);
+}
+
+/* Nội dung message */
+.message-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+}
+
+.message-icon {
+    font-size: 1.2rem;
+}
+
+.message-box.success .message-icon::before {
+    content: '\f00c'; /* Check icon */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+}
+
+.message-box.error .message-icon::before {
+    content: '\f071'; /* Warning icon */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+}
+
+/* ============================================
+   15. DIVIDER (Đường phân cách)
+   ============================================ */
+/* Đường phân cách với chữ "Hoặc" ở giữa */
+.divider {
+    text-align: center;
+    margin: 25px 0;
+    position: relative;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: var(--border-color);
+}
+
+.divider span {
+    position: relative;
+    background-color: var(--bg-color);
+    padding: 0 15px;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   16. AUTH FOOTER (Chân form)
+   ============================================ */
+/* Thông tin bên dưới form */
+.auth-footer {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.auth-footer p {
+    font-size: 0.95rem;
+    color: var(--text-light);
+}
+
+.auth-footer a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.auth-footer a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Link quay về trang chủ */
+.back-home {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.back-home a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.back-home a:hover {
+    color: var(--primary-color);
+}
+
+.back-home a i {
+    font-size: 1rem;
+}
+
+/* ============================================
+   17. RESPONSIVE DESIGN
+   ============================================ */
+/* Tablet (max-width: 992px) */
+@media (max-width: 992px) {
+    /* Ẩn phần hình ảnh, chỉ hiện form */
+    .auth-image {
+        display: none;
+    }
+
+    .auth-form-container {
+        flex: 1;
+    }
+}
+
+/* Mobile (max-width: 576px) */
+@media (max-width: 576px) {
+    .auth-form-wrapper {
+        padding: 0 10px;
+    }
+
+    .form-header h2 {
+        font-size: 1.6rem;
+    }
+
+    .form-header p {
+        font-size: 0.9rem;
+    }
+
+    /* Form row (Họ và Tên) xếp dọc */
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    /* Role selector xếp dọc */
+    .role-selector {
+        flex-direction: column;
+    }
+
+    .role-card {
+        flex-direction: row;
+        justify-content: center;
+        padding: 15px;
+    }
+
+    .role-card i {
+        font-size: 1.5rem;
+    }
+
+    /* CAPTCHA vẫn một hàng ngang; thu nhỏ font nếu cần */
+    .captcha-question {
+        font-size: 1rem;
+        padding: 12px 10px;
+    }
+
+    .captcha-container input[type="number"] {
+        width: 11.25rem;
+        min-width: 10.75rem;
+        max-width: 100%;
+        padding: 12px 8px;
+        font-size: 1rem;
+    }
+
+    .btn-refresh-captcha {
+        padding: 12px;
+    }
+
+    /* Form options xếp cột */
+    .form-options {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .forgot-password {
+        align-self: flex-end;
+    }
+}
