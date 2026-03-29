@@ -8,7 +8,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body.lam-bai-body { margin: 0; min-height: 100vh; background: #f0f4f8; font-family: 'Poppins', sans-serif; display: flex; flex-direction: column; }
+        /* Khóa chiều cao trang: chỉ khối đề cuộn, sidebar + nút luôn trong viewport */
+        html { height: 100%; }
+        body.lam-bai-body {
+            margin: 0;
+            height: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            max-height: 100vh;
+            max-height: 100dvh;
+            overflow: hidden;
+            background: #f0f4f8;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        .lam-bai-top, .canh-bao-luu, .lam-bai-footer { flex-shrink: 0; }
         .lam-bai-top {
             background: #fff; border-bottom: 1px solid #e2e8f0; padding: 14px 22px;
             display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
@@ -23,10 +38,12 @@
         .dong-ho-wrap .so.het-gio { color: #e53e3e; }
         .sv-mini { text-align: right; font-size: 0.88rem; color: #4a5568; }
         .sv-mini strong { display: block; color: #2d3748; }
-        .lam-bai-main { flex: 1; display: flex; min-height: 0; }
+        .lam-bai-main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
         .lam-bai-sidebar {
             width: 280px; flex-shrink: 0; background: #fff; border-right: 1px solid #e2e8f0;
             display: flex; flex-direction: column; padding: 16px 14px;
+            min-height: 0;
+            align-self: stretch;
         }
         .lam-bai-sidebar h3 { margin: 0 0 10px; font-size: 0.78rem; font-weight: 700; color: #718096; letter-spacing: 0.05em; }
         .tien-do { font-size: 0.85rem; color: #4a5568; margin-bottom: 12px; }
@@ -60,7 +77,16 @@
         .trang-thai-luu { font-size: 0.75rem; color: #718096; text-align: center; margin-top: 8px; min-height: 1.2em; }
         .trang-thai-luu.ok { color: #38a169; }
         .trang-thai-luu.err { color: #e53e3e; }
-        .lam-bai-content { flex: 1; padding: 22px 28px; overflow-y: auto; }
+        .lam-bai-content {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            padding: 22px 28px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .khoi-cau { scroll-margin-top: 16px; margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid #e2e8f0; }
+        .khoi-cau:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
         .cau-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
         .cau-head .stt { font-size: 1rem; font-weight: 700; color: #3182ce; text-transform: uppercase; }
         .btn-danh-dau { border: none; background: #fff7ed; color: #c05621; padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; font-family: inherit; }
@@ -73,16 +99,23 @@
         .lua-chon-item:hover { border-color: #cbd5e0; }
         .lua-chon-item.chon { border-color: #3182ce; background: #ebf8ff; }
         .lua-chon-item input { margin-right: 10px; }
-        .dieu-huong-cau { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; flex-wrap: wrap; gap: 12px; }
-        .dieu-huong-cau a, .dieu-huong-cau button { font-family: inherit; font-size: 0.88rem; }
-        .link-cau { color: #667eea; text-decoration: none; font-weight: 500; }
-        .link-cau:hover { text-decoration: underline; }
-        .btn-bo-chon { padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; color: #4a5568; cursor: pointer; }
-        .btn-cau-sau { padding: 10px 20px; border-radius: 8px; border: none; background: #3182ce; color: #fff; font-weight: 600; cursor: pointer; }
+        .hang-tac-vu-cau { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+        .btn-bo-chon { padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; color: #4a5568; cursor: pointer; font-family: inherit; font-size: 0.88rem; }
         .canh-bao-luu {
             margin: 18px 22px 0; padding: 12px 16px; background: #fffaf0; border: 1px solid #fbd38d;
             border-radius: 10px; font-size: 0.85rem; color: #9c4221; display: flex; align-items: flex-start; gap: 10px;
         }
+        #canhBao10Phut[hidden] { display: none !important; }
+        #canhBao10Phut {
+            margin: 12px 22px 0; padding: 12px 16px; background: #ebf8ff; border: 1px solid #90cdf4;
+            border-radius: 10px; font-size: 0.88rem; color: #2c5282; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+        }
+        #canhBao10Phut .btn-dong-canh-bao {
+            flex-shrink: 0; border: none; background: transparent; color: #3182ce; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 2px 6px;
+        }
+        body.lam-bai-dang-nop .btn-nop-sidebar,
+        body.lam-bai-dang-nop .btn-luu-sidebar { opacity: 0.65; pointer-events: none; }
+        .lam-bai-content.lam-bai-khoa { pointer-events: none; opacity: 0.92; }
         .lam-bai-footer {
             padding: 12px 22px; border-top: 1px solid #e2e8f0; background: #fff; font-size: 0.78rem; color: #a0aec0;
             display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
@@ -101,8 +134,14 @@
         .modal-actions .huy { background: #edf2f7; color: #4a5568; }
         .modal-actions .ok { background: #3182ce; color: #fff; }
         @media (max-width: 900px) {
-            .lam-bai-main { flex-direction: column; }
-            .lam-bai-sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; }
+            .lam-bai-main { flex-direction: column; min-height: 0; }
+            .lam-bai-sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+                flex-shrink: 0;
+            }
+            .lam-bai-content { flex: 1; min-height: 0; }
         }
     </style>
 </head>
@@ -127,6 +166,11 @@
     <div class="canh-bao-luu">
         <i class="fas fa-exclamation-triangle" style="margin-top:2px;"></i>
         <span>Lưu ý: Nhớ bấm <strong>Lưu bài</strong> hoặc để hệ thống tự lưu nháp để tránh mất bài làm khi mất kết nối.</span>
+    </div>
+
+    <div id="canhBao10Phut" class="canh-bao-10-phut" hidden role="status" aria-live="polite">
+        <span><i class="fas fa-clock" style="margin-right:8px;"></i><strong>Còn 10 phút.</strong> Vui lòng hoàn thành và nộp bài sớm.</span>
+        <button type="button" class="btn-dong-canh-bao" id="btnDongCanhBao10Phut" title="Đóng" aria-label="Đóng thông báo"><i class="fas fa-times"></i></button>
     </div>
 
     <div class="lam-bai-main">

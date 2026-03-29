@@ -329,51 +329,15 @@ public class SinhVienThiService {
         if (p.getThoiGianNop() != null) {
             return ApiResponse.error("Bài đã nộp, không thể lưu.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
-        DeThi deThi = p.getDeThi();
-        Set<String> cauTrongDe = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi).stream()
-                .map(dc -> dc.getCauHoi().getId())
-                .collect(Collectors.toSet());
-        Map<String, String> map = body != null ? body.getTraLoi() : Map.of();
-        for (Map.Entry<String, String> e : map.entrySet()) {
-            String cauId = e.getKey();
-            if (cauId == null || !cauTrongDe.contains(cauId)) {
-                continue;
-            }
-            Optional<CauHoi> cauOpt = cauHoiRepository.findById(cauId);
-            if (cauOpt.isEmpty()) {
-                continue;
-            }
-            CauHoi cau = cauOpt.get();
-            String val;
-            if ("DUNG_SAI".equals(cau.getLoaiCauHoi())) {
-                val = chuanHoaDungSai(e.getValue());
-            } else {
-                val = chuanHoaLuaChon(e.getValue());
-            }
-            if (val.isEmpty()) {
-                continue;
-            }
-            Optional<CauTraLoi> ex = cauTraLoiRepository.findByPhienThiAndCauHoi(p, cau);
-            CauTraLoi ctl;
-            if (ex.isPresent()) {
-                ctl = ex.get();
-            } else {
-                ctl = new CauTraLoi();
-                ctl.setId(UUID.randomUUID().toString());
-                ctl.setPhienThi(p);
-                ctl.setCauHoi(cau);
-            }
-            ctl.setNoiDungTraLoi(val);
-            ctl.setTrangThaiTraLoi(TTL_CHUA_TRA_LOI);
-            ctl.setTuDongCham(false);
-            ctl.setDiem(null);
-            cauTraLoiRepository.save(ctl);
+        if (daQuaThoiGianLamBai(p)) {
+            return ApiResponse.error("Đã hết thời gian làm bài, không thể lưu nháp.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
+        luuTraLoiVaoPhien(p, body);
         return ApiResponse.success("Đã lưu bài làm.", null);
     }
 
     @Transactional
-    public ApiResponse<SinhVienKetQuaThiDTO> nopBaiAnDanh(String phienThiId) {
+    public ApiResponse<SinhVienKetQuaThiDTO> nopBaiAnDanh(String phienThiId, SinhVienLuuTraLoiDTO bodyGhiTruoc) {
         Optional<PhienThi> pOpt = timPhienThiAnDanh(phienThiId);
         if (pOpt.isEmpty()) {
             return ApiResponse.error("Không tìm thấy phiên thi.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
@@ -383,6 +347,9 @@ public class SinhVienThiService {
             return ketQuaThiRepository.findByPhienThi(p)
                     .map(k -> ApiResponse.success("Đã nộp trước đó.", buildKetQuaDto(p, k)))
                     .orElseGet(() -> ApiResponse.error("Phiên đã nộp nhưng thiếu kết quả.", AuthService.ERR_HE_THONG));
+        }
+        if (bodyGhiTruoc != null && bodyGhiTruoc.getTraLoi() != null && !bodyGhiTruoc.getTraLoi().isEmpty()) {
+            luuTraLoiVaoPhien(p, bodyGhiTruoc);
         }
         return nopBaiCore(p);
     }
@@ -525,6 +492,154 @@ public class SinhVienThiService {
         return ApiResponse.success("OK", dto);
     }
 
+    /**
+     * Nội dung bài đang làm cho giáo viên giám sát: bỏ kiểm tra khung giờ mở/đóng đề (chỉ gọi khi phiên chưa nộp).
+     */
+    private ApiResponse<SinhVienBaiThiDTO> buildLayNoiDungBaiThiGiamSat(PhienThi p) {
+        DeThi deThi = p.getDeThi();
+        Map<String, CauTraLoi> traLoiTheoCau = cauTraLoiRepository.findByPhienThi(p).stream()
+                .collect(Collectors.toMap(x -> x.getCauHoi().getId(), x -> x, (a, b) -> a));
+        SinhVienBaiThiDTO dto = new SinhVienBaiThiDTO();
+        dto.setPhienThiId(p.getId());
+        dto.setDeThiId(deThi.getId());
+        dto.setTenDeThi(deThi.getTen());
+        dto.setTenMonHoc(deThi.getMonHoc() != null ? deThi.getMonHoc().getTen() : "");
+        dto.setMaHocPhan(deThi.getMonHoc() != null ? "MH-" + deThi.getMonHoc().getId().substring(0, Math.min(8, deThi.getMonHoc().getId().length())) : "—");
+        dto.setThoiGianPhut(deThi.getThoiGianPhut() != null ? deThi.getThoiGianPhut() : 60);
+        if (p.getThoiGianBatDau() != null) {
+            dto.setThoiGianBatDau(p.getThoiGianBatDau().format(ISO_DT));
+            int phut = dto.getThoiGianPhut();
+            dto.setThoiGianHetHan(p.getThoiGianBatDau().plusMinutes(phut).format(ISO_DT));
+        }
+        List<SinhVienCauHoiThiDTO> cauList = new ArrayList<>();
+        for (DeThiCauHoi link : deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi)) {
+            CauHoi c = link.getCauHoi();
+            SinhVienCauHoiThiDTO cDto = new SinhVienCauHoiThiDTO();
+            cDto.setId(c.getId());
+            cDto.setThuTu(link.getThuTu() != null ? link.getThuTu() : 0);
+            cDto.setNoiDung(c.getNoiDung());
+            cDto.setLoaiCauHoi(c.getLoaiCauHoi());
+            cDto.setLuaChonA(c.getLuaChonA());
+            cDto.setLuaChonB(c.getLuaChonB());
+            cDto.setLuaChonC(c.getLuaChonC());
+            cDto.setLuaChonD(c.getLuaChonD());
+            CauTraLoi ctl = traLoiTheoCau.get(c.getId());
+            if (ctl != null && ctl.getNoiDungTraLoi() != null && !ctl.getNoiDungTraLoi().isBlank()) {
+                if ("DUNG_SAI".equals(c.getLoaiCauHoi())) {
+                    cDto.setDaChon(chuanHoaDungSai(ctl.getNoiDungTraLoi()));
+                } else {
+                    cDto.setDaChon(chuanHoaLuaChon(ctl.getNoiDungTraLoi()));
+                }
+            }
+            cauList.add(cDto);
+        }
+        dto.setCauHoi(cauList);
+        return ApiResponse.success("OK", dto);
+    }
+
+    private static boolean laPhienThuocGiaoVien(PhienThi p, String giaoVienId) {
+        if (giaoVienId == null || p.getDeThi() == null || p.getDeThi().getNguoiDung() == null) {
+            return false;
+        }
+        return giaoVienId.equals(p.getDeThi().getNguoiDung().getId());
+    }
+
+    @Transactional(readOnly = true)
+    public ApiResponse<GiaoVienXemBaiThiDTO> layBaiThiChoGiaoVienGiamSat(String giaoVienId, String phienThiId) {
+        Optional<PhienThi> pOpt = phienThiRepository.findById(phienThiId);
+        if (pOpt.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy phiên thi.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        PhienThi p = pOpt.get();
+        if (!laPhienThuocGiaoVien(p, giaoVienId)) {
+            return ApiResponse.error("Bạn không có quyền xem phiên thi này.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        if (p.getNguoiDung() == null) {
+            return ApiResponse.error("Phiên không gắn tài khoản sinh viên.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+        NguoiDung sv = p.getNguoiDung();
+        GiaoVienXemBaiThiDTO out = new GiaoVienXemBaiThiDTO();
+        out.setHoTenSinhVien(sv.getHoTen());
+        out.setMaNguoiDungSinhVien(sv.getMaNguoiDung());
+        if (p.getThoiGianNop() != null) {
+            Optional<KetQuaThi> kOpt = ketQuaThiRepository.findByPhienThi(p);
+            if (kOpt.isEmpty()) {
+                return ApiResponse.error("Chưa có dữ liệu kết quả.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+            }
+            out.setDaNop(true);
+            out.setChiTietDaNop(buildChiTietLichSuTuPhien(p, kOpt.get()));
+            return ApiResponse.success("OK", out);
+        }
+        ApiResponse<SinhVienBaiThiDTO> nd = buildLayNoiDungBaiThiGiamSat(p);
+        if (!nd.isSuccess()) {
+            return ApiResponse.error(nd.getMessage(), nd.getErrorCode());
+        }
+        out.setDaNop(false);
+        out.setNoiDungDangLam(nd.getData());
+        return ApiResponse.success("OK", out);
+    }
+
+    private LocalDateTime tinhThoiDiemHetHanPhien(PhienThi p) {
+        if (p.getThoiGianBatDau() == null) {
+            return null;
+        }
+        DeThi deThi = p.getDeThi();
+        int phut = deThi.getThoiGianPhut() != null ? deThi.getThoiGianPhut() : 60;
+        return p.getThoiGianBatDau().plusMinutes(phut);
+    }
+
+    private boolean daQuaThoiGianLamBai(PhienThi p) {
+        LocalDateTime het = tinhThoiDiemHetHanPhien(p);
+        if (het == null) {
+            return false;
+        }
+        return LocalDateTime.now().isAfter(het);
+    }
+
+    /** Ghi map đáp án vào phiên (không kiểm tra hạn giờ — dùng trước khi nộp). */
+    private void luuTraLoiVaoPhien(PhienThi p, SinhVienLuuTraLoiDTO body) {
+        DeThi deThi = p.getDeThi();
+        Set<String> cauTrongDe = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi).stream()
+                .map(dc -> dc.getCauHoi().getId())
+                .collect(Collectors.toSet());
+        Map<String, String> map = body != null && body.getTraLoi() != null ? body.getTraLoi() : Map.of();
+        for (Map.Entry<String, String> e : map.entrySet()) {
+            String cauId = e.getKey();
+            if (cauId == null || !cauTrongDe.contains(cauId)) {
+                continue;
+            }
+            Optional<CauHoi> cauOpt = cauHoiRepository.findById(cauId);
+            if (cauOpt.isEmpty()) {
+                continue;
+            }
+            CauHoi cau = cauOpt.get();
+            String val;
+            if ("DUNG_SAI".equals(cau.getLoaiCauHoi())) {
+                val = chuanHoaDungSai(e.getValue());
+            } else {
+                val = chuanHoaLuaChon(e.getValue());
+            }
+            if (val.isEmpty()) {
+                continue;
+            }
+            Optional<CauTraLoi> ex = cauTraLoiRepository.findByPhienThiAndCauHoi(p, cau);
+            CauTraLoi ctl;
+            if (ex.isPresent()) {
+                ctl = ex.get();
+            } else {
+                ctl = new CauTraLoi();
+                ctl.setId(UUID.randomUUID().toString());
+                ctl.setPhienThi(p);
+                ctl.setCauHoi(cau);
+            }
+            ctl.setNoiDungTraLoi(val);
+            ctl.setTrangThaiTraLoi(TTL_CHUA_TRA_LOI);
+            ctl.setTuDongCham(false);
+            ctl.setDiem(null);
+            cauTraLoiRepository.save(ctl);
+        }
+    }
+
     private ApiResponse<SinhVienKetQuaThiDTO> nopBaiCore(PhienThi p) {
         DeThi deThi = p.getDeThi();
         List<DeThiCauHoi> links = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi);
@@ -618,53 +733,15 @@ public class SinhVienThiService {
         if (p.getThoiGianNop() != null) {
             return ApiResponse.error("Bài đã nộp, không thể lưu.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
-        DeThi deThi = p.getDeThi();
-
-        Set<String> cauTrongDe = deThiCauHoiRepository.findByDeThiOrderByThuTuAsc(deThi).stream()
-                .map(dc -> dc.getCauHoi().getId())
-                .collect(Collectors.toSet());
-
-        Map<String, String> map = body != null ? body.getTraLoi() : Map.of();
-        for (Map.Entry<String, String> e : map.entrySet()) {
-            String cauId = e.getKey();
-            if (cauId == null || !cauTrongDe.contains(cauId)) {
-                continue;
-            }
-            Optional<CauHoi> cauOpt = cauHoiRepository.findById(cauId);
-            if (cauOpt.isEmpty()) {
-                continue;
-            }
-            CauHoi cau = cauOpt.get();
-            String val;
-            if ("DUNG_SAI".equals(cau.getLoaiCauHoi())) {
-                val = chuanHoaDungSai(e.getValue());
-            } else {
-                val = chuanHoaLuaChon(e.getValue());
-            }
-            if (val.isEmpty()) {
-                continue;
-            }
-            Optional<CauTraLoi> ex = cauTraLoiRepository.findByPhienThiAndCauHoi(p, cau);
-            CauTraLoi ctl;
-            if (ex.isPresent()) {
-                ctl = ex.get();
-            } else {
-                ctl = new CauTraLoi();
-                ctl.setId(UUID.randomUUID().toString());
-                ctl.setPhienThi(p);
-                ctl.setCauHoi(cau);
-            }
-            ctl.setNoiDungTraLoi(val);
-            ctl.setTrangThaiTraLoi(TTL_CHUA_TRA_LOI);
-            ctl.setTuDongCham(false);
-            ctl.setDiem(null);
-            cauTraLoiRepository.save(ctl);
+        if (daQuaThoiGianLamBai(p)) {
+            return ApiResponse.error("Đã hết thời gian làm bài, không thể lưu nháp.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
+        luuTraLoiVaoPhien(p, body);
         return ApiResponse.success("Đã lưu bài làm.", null);
     }
 
     @Transactional
-    public ApiResponse<SinhVienKetQuaThiDTO> nopBai(String sinhVienId, String phienThiId) {
+    public ApiResponse<SinhVienKetQuaThiDTO> nopBai(String sinhVienId, String phienThiId, SinhVienLuuTraLoiDTO bodyGhiTruoc) {
         Optional<NguoiDung> svOpt = nguoiDungRepository.findById(sinhVienId);
         if (svOpt.isEmpty()) {
             return ApiResponse.error("Không tìm thấy sinh viên.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
@@ -678,6 +755,9 @@ public class SinhVienThiService {
             return ketQuaThiRepository.findByPhienThi(p)
                     .map(k -> ApiResponse.success("Đã nộp trước đó.", buildKetQuaDto(p, k)))
                     .orElseGet(() -> ApiResponse.error("Phiên đã nộp nhưng thiếu kết quả.", AuthService.ERR_HE_THONG));
+        }
+        if (bodyGhiTruoc != null && bodyGhiTruoc.getTraLoi() != null && !bodyGhiTruoc.getTraLoi().isEmpty()) {
+            luuTraLoiVaoPhien(p, bodyGhiTruoc);
         }
         return nopBaiCore(p);
     }
@@ -732,24 +812,8 @@ public class SinhVienThiService {
         return ApiResponse.success("OK", out);
     }
 
-    @Transactional(readOnly = true)
-    public ApiResponse<SinhVienLichSuChiTietDTO> layChiTietLichSu(String sinhVienId, String phienThiId) {
-        Optional<NguoiDung> svOpt = nguoiDungRepository.findById(sinhVienId);
-        if (svOpt.isEmpty()) {
-            return ApiResponse.error("Không tìm thấy sinh viên.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
-        }
-        Optional<PhienThi> pOpt = phienThiRepository.findByIdAndNguoiDung(phienThiId, svOpt.get());
-        if (pOpt.isEmpty()) {
-            return ApiResponse.error("Không tìm thấy phiên thi.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
-        }
-        PhienThi p = pOpt.get();
-        Optional<KetQuaThi> kOpt = ketQuaThiRepository.findByPhienThi(p);
-        if (kOpt.isEmpty()) {
-            return ApiResponse.error("Chưa có dữ liệu kết quả.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
-        }
-        KetQuaThi kq = kOpt.get();
+    private SinhVienLichSuChiTietDTO buildChiTietLichSuTuPhien(PhienThi p, KetQuaThi kq) {
         DeThi d = p.getDeThi();
-
         SinhVienLichSuChiTietDTO dto = new SinhVienLichSuChiTietDTO();
         dto.setPhienThiId(p.getId());
         dto.setTenDeThi(d.getTen());
@@ -790,7 +854,25 @@ public class SinhVienThiService {
         dto.setCacCau(cacCau);
         dto.setSoCauDung(dung);
         dto.setTongSoCau(cacCau.size());
-        return ApiResponse.success("OK", dto);
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public ApiResponse<SinhVienLichSuChiTietDTO> layChiTietLichSu(String sinhVienId, String phienThiId) {
+        Optional<NguoiDung> svOpt = nguoiDungRepository.findById(sinhVienId);
+        if (svOpt.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy sinh viên.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        Optional<PhienThi> pOpt = phienThiRepository.findByIdAndNguoiDung(phienThiId, svOpt.get());
+        if (pOpt.isEmpty()) {
+            return ApiResponse.error("Không tìm thấy phiên thi.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
+        }
+        PhienThi p = pOpt.get();
+        Optional<KetQuaThi> kOpt = ketQuaThiRepository.findByPhienThi(p);
+        if (kOpt.isEmpty()) {
+            return ApiResponse.error("Chưa có dữ liệu kết quả.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
+        return ApiResponse.success("OK", buildChiTietLichSuTuPhien(p, kOpt.get()));
     }
 
     private SinhVienKetQuaThiDTO buildKetQuaDto(PhienThi p, KetQuaThi kq) {
