@@ -14,6 +14,24 @@
         .bang-lich-su tr:hover td { background: #fafbff; }
         .link-xem { color: #667eea; font-weight: 500; text-decoration: none; }
         .link-xem:hover { text-decoration: underline; }
+        .lich-su-filter-wrap {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+            margin-bottom: 16px;
+        }
+        .lich-su-filter-wrap label { font-size: 0.88rem; color: #4a5568; font-weight: 500; }
+        .lich-su-search {
+            flex: 1; min-width: 200px; max-width: 420px;
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+            background: #f8fafc; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .lich-su-search:focus-within { border-color: #a3bffa; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); background: #fff; }
+        .lich-su-search i { color: #718096; font-size: 0.95rem; }
+        .lich-su-search input {
+            flex: 1; border: none; background: transparent; font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem; color: #2d3748; outline: none;
+        }
+        .lich-su-search input::placeholder { color: #a0aec0; }
     </style>
 </head>
 <body>
@@ -42,10 +60,6 @@
                 <a th:href="@{/dashboard/sinh-vien/phong-thi}" class="menu-item">
                     <i class="fas fa-door-open"></i>
                     <span>Lớp/Phòng Thi</span>
-                </a>
-                <a th:href="@{/dashboard/sinh-vien/mon-hoc}" class="menu-item">
-                    <i class="fas fa-book"></i>
-                    <span>Môn Học</span>
                 </a>
             </div>
 
@@ -91,6 +105,14 @@
                     <h3><i class="fas fa-history"></i> Các bài thi đã nộp</h3>
                 </div>
                 <div class="card-body" style="overflow-x:auto;">
+                    <div class="lich-su-filter-wrap">
+                        <label for="timDeThi">Tìm đề</label>
+                        <div class="lich-su-search">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input type="search" id="timDeThi" name="timDeThi" autocomplete="off"
+                                   placeholder="Tên đề thi hoặc môn học…" aria-label="Tìm theo tên đề hoặc môn">
+                        </div>
+                    </div>
                     <table class="bang-lich-su">
                         <thead>
                             <tr>

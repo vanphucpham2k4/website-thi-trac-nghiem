@@ -381,6 +381,11 @@ public class SinhVienThiService {
         }
         KetQuaThi kq = kOpt.get();
         DeThi d = p.getDeThi();
+        if (!duocXemLaiChiTiet(d)) {
+            return ApiResponse.error(
+                    "Giáo viên chưa cho phép xem lại chi tiết bài thi.",
+                    AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
         SinhVienLichSuChiTietDTO dto = new SinhVienLichSuChiTietDTO();
         dto.setPhienThiId(p.getId());
         dto.setTenDeThi(d.getTen());
@@ -787,6 +792,18 @@ public class SinhVienThiService {
             return ApiResponse.error("Không tìm thấy sinh viên.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
         }
         List<KetQuaThi> list = ketQuaThiRepository.findByNguoiDung(svOpt.get());
+        List<String> phienIds = list.stream().map(kq -> kq.getPhienThi().getId()).toList();
+        Map<String, Integer> soDungTheoPhien = new HashMap<>();
+        if (!phienIds.isEmpty()) {
+            for (Object[] row : cauTraLoiRepository.demSoCauDungTheoPhienThiIds(phienIds, TTL_DUNG)) {
+                soDungTheoPhien.put((String) row[0], ((Number) row[1]).intValue());
+            }
+        }
+        Map<String, Integer> tongCauTheoDeThi = new HashMap<>();
+        for (KetQuaThi kq : list) {
+            String deId = kq.getPhienThi().getDeThi().getId();
+            tongCauTheoDeThi.putIfAbsent(deId, (int) deThiCauHoiRepository.countByDeThi_Id(deId));
+        }
         List<SinhVienLichSuThiItemDTO> out = new ArrayList<>();
         for (KetQuaThi kq : list) {
             PhienThi p = kq.getPhienThi();
@@ -801,12 +818,8 @@ public class SinhVienThiService {
             it.setTongDiem(kq.getTongDiem() != null ? kq.getTongDiem().stripTrailingZeros().toPlainString() : "0");
             BigDecimal thang = layThangDiemToiDaHieuLuc(d);
             it.setDiemToiDa(thang.stripTrailingZeros().toPlainString());
-            long n = deThiCauHoiRepository.countByDeThi(d);
-            it.setTongSoCau((int) n);
-            int dung = (int) cauTraLoiRepository.findByPhienThi(p).stream()
-                    .filter(c -> TTL_DUNG.equals(c.getTrangThaiTraLoi()))
-                    .count();
-            it.setSoCauDung(dung);
+            it.setTongSoCau(tongCauTheoDeThi.getOrDefault(d.getId(), 0));
+            it.setSoCauDung(soDungTheoPhien.getOrDefault(p.getId(), 0));
             out.add(it);
         }
         return ApiResponse.success("OK", out);
@@ -872,7 +885,16 @@ public class SinhVienThiService {
         if (kOpt.isEmpty()) {
             return ApiResponse.error("Chưa có dữ liệu kết quả.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
+        if (!duocXemLaiChiTiet(p.getDeThi())) {
+            return ApiResponse.error(
+                    "Giáo viên chưa cho phép xem lại chi tiết bài thi.",
+                    AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
         return ApiResponse.success("OK", buildChiTietLichSuTuPhien(p, kOpt.get()));
+    }
+
+    private static boolean duocXemLaiChiTiet(DeThi d) {
+        return d.getChoPhepXemLai() == null || Boolean.TRUE.equals(d.getChoPhepXemLai());
     }
 
     private SinhVienKetQuaThiDTO buildKetQuaDto(PhienThi p, KetQuaThi kq) {
@@ -903,6 +925,13 @@ public class SinhVienThiService {
                 .filter(c -> TTL_DUNG.equals(c.getTrangThaiTraLoi()))
                 .count();
         dto.setSoCauDung(sd);
+
+        boolean xemChiTiet = duocXemLaiChiTiet(d);
+        dto.setDuocXemChiTiet(xemChiTiet);
+        if (!xemChiTiet) {
+            dto.setTrangThaiCacCau(new ArrayList<>());
+            return dto;
+        }
 
         List<SinhVienOTrangThaiCauDTO> oList = new ArrayList<>();
         int i = 0;

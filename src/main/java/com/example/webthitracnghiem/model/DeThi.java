@@ -61,6 +61,12 @@ public class DeThi {
 	@Column(name = "tron_dap_an")
 	private Boolean tronDapAn;
 
+	/**
+	 * Khi false: sinh viên chỉ xem điểm/tóm tắt, không xem lại chi tiết từng câu sau thi.
+	 */
+	@Column(name = "cho_phep_xem_lai")
+	private Boolean choPhepXemLai = Boolean.TRUE;
+
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "IDnguoi_dung", nullable = false)
 	private NguoiDung nguoiDung;

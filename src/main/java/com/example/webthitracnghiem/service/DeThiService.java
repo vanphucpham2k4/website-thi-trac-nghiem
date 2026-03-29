@@ -147,6 +147,7 @@ public class DeThiService {
         deThi.setSoLanThiToiDa(dto.getSoLanThiToiDa());
         deThi.setTronCauHoi(false);
         deThi.setTronDapAn(false);
+        deThi.setChoPhepXemLai(dto.getChoPhepXemLai() != null ? dto.getChoPhepXemLai() : Boolean.TRUE);
         deThi.setThangDiemToiDa(BigDecimal.TEN);
 
         DeThi saved = deThiRepository.save(deThi);
@@ -191,6 +192,9 @@ public class DeThiService {
         // Không còn UI trộn — luôn đặt false
         deThi.setTronCauHoi(false);
         deThi.setTronDapAn(false);
+        if (dto.getChoPhepXemLai() != null) {
+            deThi.setChoPhepXemLai(dto.getChoPhepXemLai());
+        }
 
         DeThi saved = deThiRepository.save(deThi);
         return ApiResponse.success("Cập nhật đề thi thành công!", chuyenDoiDeThiDTO(saved));
@@ -314,6 +318,7 @@ public class DeThiService {
         dto.setSoLanThiToiDa(deThi.getSoLanThiToiDa());
         dto.setTronCauHoi(deThi.getTronCauHoi());
         dto.setTronDapAn(deThi.getTronDapAn());
+        dto.setChoPhepXemLai(deThi.getChoPhepXemLai() != null ? deThi.getChoPhepXemLai() : Boolean.TRUE);
         dto.setDaBiXoa(deThi.getDeletedAt() != null);
         dto.setDaXuatBan(!deThiLopHocRepository.findByDeThi(deThi).isEmpty());
         String ma = deThi.getMaTruyCap();

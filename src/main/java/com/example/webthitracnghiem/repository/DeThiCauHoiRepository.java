@@ -22,6 +22,8 @@ public interface DeThiCauHoiRepository extends JpaRepository<DeThiCauHoi, String
     /** Đếm số câu hỏi trong một đề thi */
     long countByDeThi(DeThi deThi);
 
+    long countByDeThi_Id(String deThiId);
+
     /** Lấy danh sách câu hỏi trong đề, sắp xếp theo thứ tự */
     List<DeThiCauHoi> findByDeThiOrderByThuTuAsc(DeThi deThi);
 

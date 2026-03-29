@@ -26,7 +26,12 @@ public interface KetQuaThiRepository extends JpaRepository<KetQuaThi, String> {
      * @param nguoiDung Người dùng cần tìm kết quả
      * @return Danh sách kết quả thi
      */
-    @Query("SELECT kq FROM KetQuaThi kq WHERE kq.phienThi.nguoiDung = :nguoiDung ORDER BY kq.thoiGianNop DESC")
+    @Query("SELECT kq FROM KetQuaThi kq " +
+           "JOIN FETCH kq.phienThi pt " +
+           "JOIN FETCH pt.deThi d " +
+           "LEFT JOIN FETCH d.monHoc " +
+           "WHERE pt.nguoiDung = :nguoiDung " +
+           "ORDER BY kq.thoiGianNop DESC")
     List<KetQuaThi> findByNguoiDung(@Param("nguoiDung") NguoiDung nguoiDung);
 
     /**
@@ -44,4 +49,24 @@ public interface KetQuaThiRepository extends JpaRepository<KetQuaThi, String> {
      */
     @Query("SELECT COUNT(kq) FROM KetQuaThi kq WHERE kq.phienThi.nguoiDung = :nguoiDung")
     long demSoBaiThiHoanThanh(@Param("nguoiDung") NguoiDung nguoiDung);
+
+    /**
+     * Lấy kết quả thi theo đề thi + lớp, kèm cả kết quả ẩn danh (lopHoc IS NULL).
+     */
+    @Query("SELECT kq FROM KetQuaThi kq JOIN FETCH kq.phienThi pt " +
+           "LEFT JOIN FETCH pt.nguoiDung LEFT JOIN FETCH pt.lopHoc " +
+           "WHERE pt.deThi.id = :deThiId AND (pt.lopHoc.id = :lopHocId OR pt.lopHoc IS NULL) " +
+           "ORDER BY kq.thoiGianNop DESC")
+    List<KetQuaThi> findByDeThiIdAndLopHocIdOrAnonymous(@Param("deThiId") String deThiId,
+                                                         @Param("lopHocId") String lopHocId);
+
+    /**
+     * Lấy TẤT CẢ kết quả thi theo đề thi (mọi lớp + ẩn danh).
+     * Dùng cho luồng "Tất cả đề thi" khi giáo viên không chọn lớp.
+     */
+    @Query("SELECT kq FROM KetQuaThi kq JOIN FETCH kq.phienThi pt " +
+           "LEFT JOIN FETCH pt.nguoiDung LEFT JOIN FETCH pt.lopHoc " +
+           "WHERE pt.deThi.id = :deThiId " +
+           "ORDER BY kq.thoiGianNop DESC")
+    List<KetQuaThi> findAllByDeThiId(@Param("deThiId") String deThiId);
 }

@@ -25,6 +25,9 @@ public class DeThiListItemDTO {
     private Boolean tronCauHoi;
     private Boolean tronDapAn;
 
+    /** Cho phép sinh viên xem lại chi tiết từng câu sau khi nộp bài. */
+    private Boolean choPhepXemLai;
+
     /** Số lượt thi (từ bảng phien_thi) */
     private long soLuotThi;
 
@@ -81,6 +84,9 @@ public class DeThiListItemDTO {
 
     public Boolean getTronDapAn() { return tronDapAn; }
     public void setTronDapAn(Boolean tronDapAn) { this.tronDapAn = tronDapAn; }
+
+    public Boolean getChoPhepXemLai() { return choPhepXemLai; }
+    public void setChoPhepXemLai(Boolean choPhepXemLai) { this.choPhepXemLai = choPhepXemLai; }
 
     public long getSoLuotThi() { return soLuotThi; }
     public void setSoLuotThi(long soLuotThi) { this.soLuotThi = soLuotThi; }
