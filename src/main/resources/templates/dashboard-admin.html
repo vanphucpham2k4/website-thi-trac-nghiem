@@ -68,17 +68,6 @@
                 </a>
             </div>
 
-            <div class="menu-section">
-                <span class="menu-label">HỆ THỐNG</span>
-                <a href="#" class="menu-item" data-page="thong-ke">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Thống Kê Chi Tiết</span>
-                </a>
-                <a href="#" class="menu-item" data-page="cai-dat">
-                    <i class="fas fa-cog"></i>
-                    <span>Cài Đặt Hệ Thống</span>
-                </a>
-            </div>
 
             <div class="menu-section">
                 <span class="menu-label">TÀI KHOẢN</span>
@@ -427,15 +416,244 @@
             </div>
         </div>
 
-        <!-- Trang tạm: chức năng đang phát triển (đề thi, câu hỏi, ...) -->
-        <div class="dashboard-content admin-placeholder-page" id="pagePlaceholder" style="display: none;">
-            <div class="dashboard-card admin-placeholder-card">
-                <div class="card-body admin-placeholder-body">
-                    <div class="admin-placeholder-icon" aria-hidden="true">
-                        <i class="fas fa-hard-hat"></i>
+        <!-- ===== TRANG QUẢN LÝ ĐỀ THI ===== -->
+        <div class="dashboard-content admin-user-page" id="pageQuanLyDeThi" style="display: none;">
+            <!-- Sub-view 1: Danh sách giảng viên -->
+            <div id="deThiGvListView">
+                <div class="stats-grid admin-stats-grid" id="adminDeThiStatsGrid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);"><i class="fas fa-file-alt"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatTongDeThi">--</span><span class="stat-label">Tổng Đề Thi</span></div>
                     </div>
-                    <h2 class="admin-placeholder-title">Trang này đang được phát triển</h2>
-                    <p class="admin-placeholder-hint">Vui lòng quay lại sau hoặc dùng các mục đã có sẵn trong menu.</p>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f6ad55, #ed8936);"><i class="fas fa-pencil-alt"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatDeThiNhap">--</span><span class="stat-label">Đề Nháp</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);"><i class="fas fa-globe"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatDeThiCK">--</span><span class="stat-label">Công Khai</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1, #3182ce);"><i class="fas fa-chalkboard-teacher"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatDeThiGV">--</span><span class="stat-label">Giảng Viên</span></div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chalkboard-teacher"></i> Danh Sách Giảng Viên — Đề Thi</h3>
+                        <input type="search" class="admin-search-input" id="adminDeThiGvSearch" placeholder="Tìm giảng viên..." oninput="filterAdminDeThiGvList()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;width:260px;outline:none;">
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-wrap-admin">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>#</th><th>Họ Tên</th><th>Email</th><th>Tổng ĐT</th><th>Nháp</th><th>Công Khai</th><th>Môn</th><th></th></tr>
+                                </thead>
+                                <tbody id="adminDeThiGvTableBody">
+                                    <tr class="loading-row"><td colspan="8"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-view 2: Đề thi của 1 GV -->
+            <div id="deThiDetailView" style="display:none;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                    <button class="btn btn-sm" onclick="quayLaiDanhSachGV_DeThi()" style="background:#f1f5f9;color:#475569;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:500;">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </button>
+                    <h3 style="margin:0;font-size:1.05rem;color:#2d3748;" id="deThiDetailTitle">Đề thi của: ...</h3>
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;">
+                    <select id="adminDeThiFilterMH" onchange="applyAdminDeThiFilter()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;outline:none;">
+                        <option value="">Tất cả môn học</option>
+                    </select>
+                    <select id="adminDeThiFilterTT" onchange="applyAdminDeThiFilter()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;outline:none;">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="NHAP">Nháp</option>
+                        <option value="CONG_KHAI">Công khai</option>
+                    </select>
+                    <input type="search" id="adminDeThiFilterKW" placeholder="Tìm tên đề..." oninput="debounceAdminDeThi()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;width:220px;outline:none;">
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-file-alt"></i> Danh Sách Đề Thi <span id="adminDeThiCount" style="font-size:0.8rem;color:#718096;font-weight:400;margin-left:8px;"></span></h3>
+                    </div>
+                    <div class="card-body" style="padding:0;overflow-x:auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>#</th><th>Tên Đề Thi</th><th>Mã Đề</th><th>Môn Học</th><th>Thời Gian</th><th>Câu Hỏi</th><th>Lượt Thi</th><th>Trạng Thái</th><th>Ngày Tạo</th><th>Thao Tác</th></tr>
+                            </thead>
+                            <tbody id="adminDeThiTableBody">
+                                <tr><td colspan="10" style="text-align:center;padding:40px;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid #e2e8f0;">
+                        <span id="adminDeThiPagInfo" style="font-size:0.85rem;color:#718096;"></span>
+                        <div id="adminDeThiPagBtns" style="display:flex;gap:6px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== TRANG QUẢN LÝ CÂU HỎI ===== -->
+        <div class="dashboard-content admin-user-page" id="pageQuanLyCauHoi" style="display: none;">
+            <!-- Sub-view 1: Danh sách giảng viên -->
+            <div id="cauHoiGvListView">
+                <div class="stats-grid admin-stats-grid" id="adminCauHoiStatsGrid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);"><i class="fas fa-question-circle"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatTongCauHoi">--</span><span class="stat-label">Tổng Câu Hỏi</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);"><i class="fas fa-smile"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatCauHoiDe">--</span><span class="stat-label">Câu Dễ</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f6ad55, #ed8936);"><i class="fas fa-meh"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatCauHoiTB">--</span><span class="stat-label">Trung Bình</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f56565, #e53e3e);"><i class="fas fa-frown"></i></div>
+                        <div class="stat-info"><span class="stat-number" id="adminStatCauHoiKho">--</span><span class="stat-label">Câu Khó</span></div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chalkboard-teacher"></i> Danh Sách Giảng Viên — Câu Hỏi</h3>
+                        <input type="search" class="admin-search-input" id="adminCauHoiGvSearch" placeholder="Tìm giảng viên..." oninput="filterAdminCauHoiGvList()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;width:260px;outline:none;">
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-wrap-admin">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>#</th><th>Họ Tên</th><th>Email</th><th>Tổng CH</th><th>😊 Dễ</th><th>😐 TB</th><th>😤 Khó</th><th></th></tr>
+                                </thead>
+                                <tbody id="adminCauHoiGvTableBody">
+                                    <tr class="loading-row"><td colspan="8"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-view 2: Câu hỏi của 1 GV -->
+            <div id="cauHoiDetailView" style="display:none;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                    <button class="btn btn-sm" onclick="quayLaiDanhSachGV_CauHoi()" style="background:#f1f5f9;color:#475569;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:500;">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </button>
+                    <h3 style="margin:0;font-size:1.05rem;color:#2d3748;" id="cauHoiDetailTitle">Câu hỏi của: ...</h3>
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;">
+                    <select id="adminCauHoiFilterMH" onchange="onAdminCauHoiMonHocChange()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;outline:none;">
+                        <option value="">Tất cả môn học</option>
+                    </select>
+                    <select id="adminCauHoiFilterCD" onchange="applyAdminCauHoiFilter()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;outline:none;">
+                        <option value="">Tất cả chủ đề</option>
+                    </select>
+                    <select id="adminCauHoiFilterDK" onchange="applyAdminCauHoiFilter()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;outline:none;">
+                        <option value="">Tất cả độ khó</option>
+                        <option value="DE">😊 Dễ</option>
+                        <option value="TRUNG_BINH">😐 Trung Bình</option>
+                        <option value="KHO">😤 Khó</option>
+                    </select>
+                    <input type="search" id="adminCauHoiFilterKW" placeholder="Tìm nội dung..." oninput="debounceAdminCauHoi()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;width:220px;outline:none;">
+                    <button onclick="resetAdminCauHoiFilter()" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;cursor:pointer;background:#f8fafc;color:#718096;">
+                        <i class="fas fa-undo"></i> Đặt lại
+                    </button>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list"></i> Danh Sách Câu Hỏi <span id="adminCauHoiCount" style="font-size:0.8rem;color:#718096;font-weight:400;margin-left:8px;"></span></h3>
+                    </div>
+                    <div class="card-body" style="padding:0;overflow-x:auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th style="width:40px;">#</th><th>Nội Dung</th><th>Môn/Chủ Đề</th><th>Loại</th><th>Độ Khó</th><th>Đáp Án</th><th>Dùng Trong</th><th style="width:90px;">Thao Tác</th></tr>
+                            </thead>
+                            <tbody id="adminCauHoiTableBody">
+                                <tr><td colspan="8" style="text-align:center;padding:40px;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid #e2e8f0;">
+                        <span id="adminCauHoiPagInfo" style="font-size:0.85rem;color:#718096;"></span>
+                        <div id="adminCauHoiPagBtns" style="display:flex;gap:6px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Modal xem chi tiết đề thi -->
+        <div class="admin-modal-overlay" id="modalAdminChiTietDeThi" style="display:none;">
+            <div class="admin-modal" style="max-width:780px;">
+                <div class="admin-modal-header">
+                    <h3><i class="fas fa-file-alt" style="color:#667eea;margin-right:8px;"></i>Chi tiết đề thi</h3>
+                    <button type="button" class="admin-modal-close" onclick="document.getElementById('modalAdminChiTietDeThi').style.display='none'" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body" id="adminDeThiChiTietBody" style="max-height:70vh;overflow-y:auto;">
+                    <p style="text-align:center;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn btn-sm" onclick="document.getElementById('modalAdminChiTietDeThi').style.display='none'">Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal xem chi tiết câu hỏi -->
+        <div class="admin-modal-overlay" id="modalAdminChiTietCauHoi" style="display:none;">
+            <div class="admin-modal" style="max-width:680px;">
+                <div class="admin-modal-header">
+                    <h3><i class="fas fa-question-circle" style="color:#667eea;margin-right:8px;"></i>Chi tiết câu hỏi</h3>
+                    <button type="button" class="admin-modal-close" onclick="document.getElementById('modalAdminChiTietCauHoi').style.display='none'" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body" id="adminCauHoiChiTietBody" style="max-height:70vh;overflow-y:auto;">
+                    <p style="text-align:center;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn btn-sm" onclick="document.getElementById('modalAdminChiTietCauHoi').style.display='none'">Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal xác nhận xóa đề thi -->
+        <div class="admin-modal-overlay" id="modalAdminXoaDeThi" style="display:none;">
+            <div class="admin-modal" style="max-width:440px;">
+                <div class="admin-modal-header">
+                    <h3>Xóa đề thi</h3>
+                    <button type="button" class="admin-modal-close" onclick="document.getElementById('modalAdminXoaDeThi').style.display='none'" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body" style="text-align:center;">
+                    <div style="font-size:3rem;margin-bottom:12px;">⚠️</div>
+                    <p style="color:#4a5568;">Bạn có chắc muốn <strong style="color:#e53e3e;">xóa hẳn</strong> đề thi này?<br><small style="color:#718096;">Hành động không thể hoàn tác. Chỉ xóa được nếu chưa có sinh viên làm bài.</small></p>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn btn-sm" onclick="document.getElementById('modalAdminXoaDeThi').style.display='none'">Hủy</button>
+                    <button type="button" class="btn btn-sm" id="btnAdminXoaDeThi" style="background:#e53e3e;color:#fff;"><i class="fas fa-trash-alt"></i> Xóa Hẳn</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal xác nhận xóa câu hỏi -->
+        <div class="admin-modal-overlay" id="modalAdminXoaCauHoi" style="display:none;">
+            <div class="admin-modal" style="max-width:440px;">
+                <div class="admin-modal-header">
+                    <h3>Xóa câu hỏi</h3>
+                    <button type="button" class="admin-modal-close" onclick="document.getElementById('modalAdminXoaCauHoi').style.display='none'" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body" style="text-align:center;">
+                    <div style="font-size:3rem;margin-bottom:12px;">🗑️</div>
+                    <p style="color:#4a5568;">Bạn có chắc muốn <strong style="color:#e53e3e;">xóa</strong> câu hỏi này?<br><small style="color:#718096;">Hành động không thể hoàn tác. Chỉ xóa được nếu câu hỏi không đang được dùng trong đề thi.</small></p>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn btn-sm" onclick="document.getElementById('modalAdminXoaCauHoi').style.display='none'">Hủy</button>
+                    <button type="button" class="btn btn-sm" id="btnAdminXoaCauHoi" style="background:#e53e3e;color:#fff;"><i class="fas fa-trash-alt"></i> Xóa</button>
                 </div>
             </div>
         </div>

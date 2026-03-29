@@ -92,4 +92,40 @@ public interface DeThiRepository extends JpaRepository<DeThi, String> {
      */
     @Query("SELECT d FROM DeThi d WHERE d.maTruyCap = :ma AND d.deletedAt IS NULL")
     java.util.Optional<DeThi> findByMaTruyCapAndDeletedAtIsNull(@Param("ma") String maTruyCap);
+
+    // ================================================================
+    // ADMIN QUERIES — xem đề thi của bất kỳ giáo viên nào
+    // ================================================================
+
+    /**
+     * Admin: lọc đề thi của 1 giáo viên cụ thể (chưa xóa mềm).
+     */
+    @Query("""
+        SELECT d FROM DeThi d
+        WHERE d.nguoiDung.id = :nguoiDungId
+          AND d.deletedAt IS NULL
+          AND (:monHocId IS NULL OR d.monHoc.id = :monHocId)
+          AND (:trangThai IS NULL OR d.trangThai = :trangThai)
+          AND (:keyword IS NULL OR LOWER(d.ten) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY d.thoiGianTao DESC
+        """)
+    List<DeThi> adminLocDeThiTheoGiaoVien(
+            @Param("nguoiDungId") String nguoiDungId,
+            @Param("monHocId") String monHocId,
+            @Param("trangThai") String trangThai,
+            @Param("keyword") String keyword);
+
+    /**
+     * Admin: đếm đề thi chưa xóa mềm, nhóm theo giáo viên + trạng thái.
+     * Trả về [nguoiDungId, trangThai, count].
+     */
+    @Query("SELECT d.nguoiDung.id, d.trangThai, COUNT(d) FROM DeThi d WHERE d.deletedAt IS NULL GROUP BY d.nguoiDung.id, d.trangThai")
+    List<Object[]> adminDemDeThiTheoGiaoVienVaTrangThai();
+
+    /**
+     * Admin: đếm số môn học riêng biệt mà giáo viên có đề thi (chưa xóa).
+     * Trả về [nguoiDungId, soMonHoc].
+     */
+    @Query("SELECT d.nguoiDung.id, COUNT(DISTINCT d.monHoc.id) FROM DeThi d WHERE d.deletedAt IS NULL GROUP BY d.nguoiDung.id")
+    List<Object[]> adminDemSoMonHocTheoGiaoVien();
 }
