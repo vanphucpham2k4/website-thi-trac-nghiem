@@ -61,19 +61,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const pageDashboard = document.getElementById('pageDashboard');
     const pageNguoiDung = document.getElementById('pageNguoiDung');
     const pageMonHoc = document.getElementById('pageMonHoc');
+    const pageQuanLyDeThi = document.getElementById('pageQuanLyDeThi');
+    const pageQuanLyCauHoi = document.getElementById('pageQuanLyCauHoi');
     const pagePlaceholder = document.getElementById('pagePlaceholder');
     const mainPageTitle = document.getElementById('mainPageTitle');
     const menuItems = document.querySelectorAll('.menu-item[data-page]');
-
-    const PLACEHOLDER_MENU_TITLES = {
-        'de-thi': 'Quản Lý Đề Thi',
-        'cau-hoi': 'Quản Lý Câu Hỏi'
-    };
 
     function hideAllMainPages() {
         if (pageDashboard) pageDashboard.style.display = 'none';
         if (pageNguoiDung) pageNguoiDung.style.display = 'none';
         if (pageMonHoc) pageMonHoc.style.display = 'none';
+        if (pageQuanLyDeThi) pageQuanLyDeThi.style.display = 'none';
+        if (pageQuanLyCauHoi) pageQuanLyCauHoi.style.display = 'none';
         if (pagePlaceholder) pagePlaceholder.style.display = 'none';
     }
 
@@ -98,13 +97,24 @@ document.addEventListener('DOMContentLoaded', function () {
             loadAdminMonHoc();
             return;
         }
-        if (PLACEHOLDER_MENU_TITLES[page]) {
+        if (page === 'de-thi') {
             hideAllMainPages();
-            if (pagePlaceholder) pagePlaceholder.style.display = '';
-            if (mainPageTitle) mainPageTitle.textContent = PLACEHOLDER_MENU_TITLES[page];
+            if (pageQuanLyDeThi) pageQuanLyDeThi.style.display = '';
+            if (mainPageTitle) mainPageTitle.textContent = 'Quản Lý Đề Thi';
+            loadAdminGiaoVienDeThi();
             return;
         }
-        alert('Chức năng đang được phát triển.');
+        if (page === 'cau-hoi') {
+            hideAllMainPages();
+            if (pageQuanLyCauHoi) pageQuanLyCauHoi.style.display = '';
+            if (mainPageTitle) mainPageTitle.textContent = 'Quản Lý Câu Hỏi';
+            loadAdminGiaoVienCauHoi();
+            return;
+        }
+        // Fallback placeholder
+        hideAllMainPages();
+        if (pagePlaceholder) pagePlaceholder.style.display = '';
+        if (mainPageTitle) mainPageTitle.textContent = 'Đang phát triển';
     }
 
     menuItems.forEach(function (item) {
@@ -963,4 +973,431 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 16);
         });
     }
+    // ====== 8. ADMIN QUẢN LÝ ĐỀ THI ======
+    let adminDeThiGvCache = [];
+    let adminDeThiCurrentGvId = '';
+    let adminDeThiCurrentGvName = '';
+    let adminDeThiCache = [];
+    let adminDeThiPage = 1;
+    const ADMIN_DETHI_PER_PAGE = 20;
+    let adminDeThiDebounceTimer = null;
+
+    async function loadAdminGiaoVienDeThi() {
+        const tbody = document.getElementById('adminDeThiGvTableBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+        // Ensure sub-view 1 is visible
+        document.getElementById('deThiGvListView').style.display = '';
+        document.getElementById('deThiDetailView').style.display = 'none';
+        try {
+            const res = await fetch('/api/admin/de-thi/giao-vien', { headers: authHeadersJson() });
+            if (res.status === 401) { window.location.href = '/login/admin?expired=1'; return; }
+            const json = await res.json();
+            if (!json.success) { if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#e53e3e;">' + (json.message || 'Lỗi') + '</td></tr>'; return; }
+            adminDeThiGvCache = json.data || [];
+            renderAdminDeThiGvTable(adminDeThiGvCache);
+            // Update stats
+            let tongDeThi = 0, nhap = 0, ck = 0;
+            adminDeThiGvCache.forEach(gv => { tongDeThi += gv.tongDeThi; nhap += gv.soDeThiNhap; ck += gv.soDeThiCongKhai; });
+            setStatText('adminStatTongDeThi', tongDeThi);
+            setStatText('adminStatDeThiNhap', nhap);
+            setStatText('adminStatDeThiCK', ck);
+            setStatText('adminStatDeThiGV', adminDeThiGvCache.length);
+        } catch (e) { console.error(e); if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#e53e3e;">Lỗi kết nối</td></tr>'; }
+    }
+
+    function renderAdminDeThiGvTable(list) {
+        const tbody = document.getElementById('adminDeThiGvTableBody');
+        if (!tbody) return;
+        if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#a0aec0;padding:30px;">Chưa có giảng viên nào</td></tr>'; return; }
+        let html = '';
+        list.forEach((gv, i) => {
+            html += '<tr style="cursor:pointer;" onclick="drillDownDeThiGiaoVien(\'' + gv.nguoiDungId + '\', \'' + escapeHtml(gv.hoTen || '') + '\')">';
+            html += '<td>' + (i + 1) + '</td>';
+            html += '<td><strong>' + escapeHtml(gv.hoTen || '') + '</strong></td>';
+            html += '<td>' + escapeHtml(gv.email || '') + '</td>';
+            html += '<td><span class="badge badge-admin">' + gv.tongDeThi + '</span></td>';
+            html += '<td>' + gv.soDeThiNhap + '</td>';
+            html += '<td>' + gv.soDeThiCongKhai + '</td>';
+            html += '<td>' + gv.soMonHoc + '</td>';
+            html += '<td><i class="fas fa-chevron-right" style="color:#a0aec0;"></i></td>';
+            html += '</tr>';
+        });
+        tbody.innerHTML = html;
+    }
+
+    window.filterAdminDeThiGvList = function() {
+        const kw = (document.getElementById('adminDeThiGvSearch').value || '').toLowerCase();
+        const filtered = adminDeThiGvCache.filter(gv => (gv.hoTen || '').toLowerCase().includes(kw) || (gv.email || '').toLowerCase().includes(kw));
+        renderAdminDeThiGvTable(filtered);
+    };
+
+    window.drillDownDeThiGiaoVien = async function(gvId, gvName) {
+        adminDeThiCurrentGvId = gvId;
+        adminDeThiCurrentGvName = gvName;
+        document.getElementById('deThiGvListView').style.display = 'none';
+        document.getElementById('deThiDetailView').style.display = '';
+        document.getElementById('deThiDetailTitle').textContent = 'Đề thi của: ' + gvName;
+        adminDeThiPage = 1;
+        // Load filter options
+        loadAdminDeThiFilterOptions();
+        // Load exams
+        await loadDeThiCuaGV();
+    };
+
+    window.quayLaiDanhSachGV_DeThi = function() {
+        document.getElementById('deThiGvListView').style.display = '';
+        document.getElementById('deThiDetailView').style.display = 'none';
+    };
+
+    async function loadAdminDeThiFilterOptions() {
+        try {
+            const res = await fetch('/api/admin/de-thi/mon-hoc', { headers: authHeadersJson() });
+            const json = await res.json();
+            const sel = document.getElementById('adminDeThiFilterMH');
+            if (sel && json.success && json.data) {
+                sel.innerHTML = '<option value="">Tất cả môn học</option>';
+                json.data.forEach(mh => { sel.innerHTML += '<option value="' + mh.id + '">' + escapeHtml(mh.ten) + '</option>'; });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function loadDeThiCuaGV() {
+        const tbody = document.getElementById('adminDeThiTableBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+        const monHocId = document.getElementById('adminDeThiFilterMH').value;
+        const trangThai = document.getElementById('adminDeThiFilterTT').value;
+        const keyword = document.getElementById('adminDeThiFilterKW').value;
+        let url = '/api/admin/de-thi/giao-vien/' + encodeURIComponent(adminDeThiCurrentGvId) + '?';
+        if (monHocId) url += 'monHocId=' + encodeURIComponent(monHocId) + '&';
+        if (trangThai) url += 'trangThai=' + encodeURIComponent(trangThai) + '&';
+        if (keyword) url += 'keyword=' + encodeURIComponent(keyword) + '&';
+        try {
+            const res = await fetch(url, { headers: authHeadersJson() });
+            if (res.status === 401) { window.location.href = '/login/admin?expired=1'; return; }
+            const json = await res.json();
+            if (!json.success) { if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#e53e3e;">' + (json.message || 'Lỗi') + '</td></tr>'; return; }
+            adminDeThiCache = json.data || [];
+            adminDeThiPage = 1;
+            renderAdminDeThiTable();
+        } catch(e) { console.error(e); if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#e53e3e;">Lỗi kết nối</td></tr>'; }
+    }
+
+    function renderAdminDeThiTable() {
+        const tbody = document.getElementById('adminDeThiTableBody');
+        if (!tbody) return;
+        const total = adminDeThiCache.length;
+        document.getElementById('adminDeThiCount').textContent = '(' + total + ' đề thi)';
+        if (total === 0) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#a0aec0;padding:30px;">Không có đề thi nào</td></tr>'; document.getElementById('adminDeThiPagInfo').textContent = ''; document.getElementById('adminDeThiPagBtns').innerHTML = ''; return; }
+        const start = (adminDeThiPage - 1) * ADMIN_DETHI_PER_PAGE;
+        const end = Math.min(start + ADMIN_DETHI_PER_PAGE, total);
+        const pageItems = adminDeThiCache.slice(start, end);
+        let html = '';
+        pageItems.forEach((dt, i) => {
+            const tt = dt.trangThai === 'CONG_KHAI' ? '<span class="badge badge-success"><i class="fas fa-globe"></i> Công khai</span>' : '<span class="badge badge-warning"><i class="fas fa-pencil-alt"></i> Nháp</span>';
+            const ngayTao = dt.thoiGianTao ? new Date(dt.thoiGianTao).toLocaleDateString('vi-VN') : '—';
+            html += '<tr>';
+            html += '<td>' + (start + i + 1) + '</td>';
+            html += '<td><strong>' + escapeHtml(dt.tenDeThi || '') + '</strong></td>';
+            html += '<td><code>' + escapeHtml(dt.maDeThi || '') + '</code></td>';
+            html += '<td>' + escapeHtml(dt.tenMonHoc || '') + '</td>';
+            html += '<td>' + (dt.thoiGianPhut || '—') + ' phút</td>';
+            html += '<td>' + dt.soCauHoi + '</td>';
+            html += '<td>' + dt.soLuotThi + '</td>';
+            html += '<td>' + tt + '</td>';
+            html += '<td>' + ngayTao + '</td>';
+            html += '<td><div class="admin-action-btns">';
+            html += '<button class="btn btn-sm btn-outline" onclick="xemChiTietDeThiAdmin(\'' + dt.id + '\')"><i class="fas fa-eye"></i></button>';
+            html += '<button class="btn btn-sm btn-outline" style="color:#e53e3e;border-color:#feb2b2;" onclick="moModalXoaDeThi(\'' + dt.id + '\')"><i class="fas fa-trash"></i></button>';
+            html += '</div></td></tr>';
+        });
+        tbody.innerHTML = html;
+        // Pagination
+        const totalPages = Math.ceil(total / ADMIN_DETHI_PER_PAGE);
+        document.getElementById('adminDeThiPagInfo').textContent = 'Hiển thị ' + (start + 1) + '–' + end + ' / ' + total;
+        let pagHtml = '';
+        for (let p = 1; p <= totalPages; p++) {
+            pagHtml += '<button style="padding:4px 10px;border:1px solid ' + (p === adminDeThiPage ? '#667eea' : '#e2e8f0') + ';border-radius:6px;background:' + (p === adminDeThiPage ? '#667eea' : '#fff') + ';color:' + (p === adminDeThiPage ? '#fff' : '#4a5568') + ';cursor:pointer;font-size:0.85rem;" onclick="adminDeThiGoToPage(' + p + ')">' + p + '</button>';
+        }
+        document.getElementById('adminDeThiPagBtns').innerHTML = pagHtml;
+    }
+
+    window.adminDeThiGoToPage = function(p) { adminDeThiPage = p; renderAdminDeThiTable(); };
+    window.applyAdminDeThiFilter = function() { loadDeThiCuaGV(); };
+    window.debounceAdminDeThi = function() { clearTimeout(adminDeThiDebounceTimer); adminDeThiDebounceTimer = setTimeout(loadDeThiCuaGV, 400); };
+
+    window.xemChiTietDeThiAdmin = async function(id) {
+        const body = document.getElementById('adminDeThiChiTietBody');
+        body.innerHTML = '<p style="text-align:center;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>';
+        document.getElementById('modalAdminChiTietDeThi').style.display = 'flex';
+        try {
+            const res = await fetch('/api/admin/de-thi/' + encodeURIComponent(id), { headers: authHeadersJson() });
+            const json = await res.json();
+            if (!json.success) { body.innerHTML = '<p style="color:#e53e3e;text-align:center;">' + (json.message || 'Lỗi') + '</p>'; return; }
+            const dt = json.data;
+            const tt = dt.trangThai === 'CONG_KHAI' ? '🌐 Công khai' : '📝 Nháp';
+            let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:20px;">';
+            html += '<div><strong style="color:#718096;">Tên đề:</strong><br>' + escapeHtml(dt.tenDeThi) + '</div>';
+            html += '<div><strong style="color:#718096;">Mã đề:</strong><br><code>' + escapeHtml(dt.maDeThi || '') + '</code></div>';
+            html += '<div><strong style="color:#718096;">Môn học:</strong><br>' + escapeHtml(dt.tenMonHoc) + '</div>';
+            html += '<div><strong style="color:#718096;">Trạng thái:</strong><br>' + tt + '</div>';
+            html += '<div><strong style="color:#718096;">Thời gian:</strong><br>' + (dt.thoiGianPhut || '—') + ' phút</div>';
+            html += '<div><strong style="color:#718096;">Giáo viên:</strong><br>' + escapeHtml(dt.tenNguoiTao) + '</div>';
+            html += '<div><strong style="color:#718096;">Số câu hỏi:</strong><br>' + dt.soCauHoi + '</div>';
+            html += '<div><strong style="color:#718096;">Lượt thi:</strong><br>' + dt.soLuotThi + '</div>';
+            if (dt.moTa) html += '<div style="grid-column:1/3;"><strong style="color:#718096;">Mô tả:</strong><br>' + escapeHtml(dt.moTa) + '</div>';
+            html += '</div>';
+            // Question list
+            if (dt.danhSachCauHoi && dt.danhSachCauHoi.length > 0) {
+                html += '<h4 style="margin:16px 0 8px;color:#2d3748;"><i class="fas fa-list-ol"></i> Danh sách câu hỏi (' + dt.danhSachCauHoi.length + ')</h4>';
+                html += '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;"><thead><tr style="background:#f7fafc;"><th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0;">#</th><th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0;">Nội dung</th><th style="padding:8px;border-bottom:1px solid #e2e8f0;">Độ khó</th><th style="padding:8px;border-bottom:1px solid #e2e8f0;">Đáp án</th></tr></thead><tbody>';
+                dt.danhSachCauHoi.forEach((ch, idx) => {
+                    const doKhoLabel = ch.doKho === 'DE' ? '😊 Dễ' : ch.doKho === 'KHO' ? '😤 Khó' : '😐 TB';
+                    html += '<tr><td style="padding:6px 8px;border-bottom:1px solid #edf2f7;">' + (idx + 1) + '</td>';
+                    html += '<td style="padding:6px 8px;border-bottom:1px solid #edf2f7;">' + escapeHtml(truncateText(ch.noiDung, 80)) + '</td>';
+                    html += '<td style="padding:6px 8px;border-bottom:1px solid #edf2f7;text-align:center;">' + doKhoLabel + '</td>';
+                    html += '<td style="padding:6px 8px;border-bottom:1px solid #edf2f7;text-align:center;"><strong>' + escapeHtml(ch.dapAnDung || '') + '</strong></td></tr>';
+                });
+                html += '</tbody></table>';
+            }
+            body.innerHTML = html;
+        } catch(e) { console.error(e); body.innerHTML = '<p style="color:#e53e3e;text-align:center;">Lỗi kết nối</p>'; }
+    };
+
+    window.moModalXoaDeThi = function(id) {
+        document.getElementById('modalAdminXoaDeThi').style.display = 'flex';
+        document.getElementById('btnAdminXoaDeThi').onclick = function() { xoaDeThiAdmin(id); };
+    };
+
+    async function xoaDeThiAdmin(id) {
+        document.getElementById('modalAdminXoaDeThi').style.display = 'none';
+        try {
+            const res = await fetch('/api/admin/de-thi/' + encodeURIComponent(id), { method: 'DELETE', headers: authHeadersJson() });
+            const json = await res.json();
+            if (!json.success) { alert(json.message || 'Không xóa được'); return; }
+            await loadDeThiCuaGV();
+        } catch(e) { console.error(e); alert('Lỗi kết nối'); }
+    }
+
+    // ====== 9. ADMIN QUẢN LÝ CÂU HỎI ======
+    let adminCauHoiGvCache = [];
+    let adminCauHoiCurrentGvId = '';
+    let adminCauHoiCurrentGvName = '';
+    let adminCauHoiCache = [];
+    let adminCauHoiPage = 1;
+    const ADMIN_CAUHOI_PER_PAGE = 20;
+    let adminCauHoiDebounceTimer = null;
+
+    async function loadAdminGiaoVienCauHoi() {
+        const tbody = document.getElementById('adminCauHoiGvTableBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+        document.getElementById('cauHoiGvListView').style.display = '';
+        document.getElementById('cauHoiDetailView').style.display = 'none';
+        try {
+            const res = await fetch('/api/admin/cau-hoi/giao-vien', { headers: authHeadersJson() });
+            if (res.status === 401) { window.location.href = '/login/admin?expired=1'; return; }
+            const json = await res.json();
+            if (!json.success) { if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#e53e3e;">' + (json.message || 'Lỗi') + '</td></tr>'; return; }
+            adminCauHoiGvCache = json.data || [];
+            renderAdminCauHoiGvTable(adminCauHoiGvCache);
+            let tong = 0, de = 0, tb = 0, kho = 0;
+            adminCauHoiGvCache.forEach(gv => { tong += gv.tongCauHoi; de += gv.soCauDe; tb += gv.soCauTrungBinh; kho += gv.soCauKho; });
+            setStatText('adminStatTongCauHoi', tong);
+            setStatText('adminStatCauHoiDe', de);
+            setStatText('adminStatCauHoiTB', tb);
+            setStatText('adminStatCauHoiKho', kho);
+        } catch(e) { console.error(e); if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#e53e3e;">Lỗi kết nối</td></tr>'; }
+    }
+
+    function renderAdminCauHoiGvTable(list) {
+        const tbody = document.getElementById('adminCauHoiGvTableBody');
+        if (!tbody) return;
+        if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#a0aec0;padding:30px;">Chưa có giảng viên nào</td></tr>'; return; }
+        let html = '';
+        list.forEach((gv, i) => {
+            html += '<tr style="cursor:pointer;" onclick="drillDownCauHoiGiaoVien(\'' + gv.nguoiDungId + '\', \'' + escapeHtml(gv.hoTen || '') + '\')">';
+            html += '<td>' + (i + 1) + '</td>';
+            html += '<td><strong>' + escapeHtml(gv.hoTen || '') + '</strong></td>';
+            html += '<td>' + escapeHtml(gv.email || '') + '</td>';
+            html += '<td><span class="badge badge-admin">' + gv.tongCauHoi + '</span></td>';
+            html += '<td>' + gv.soCauDe + '</td>';
+            html += '<td>' + gv.soCauTrungBinh + '</td>';
+            html += '<td>' + gv.soCauKho + '</td>';
+            html += '<td><i class="fas fa-chevron-right" style="color:#a0aec0;"></i></td>';
+            html += '</tr>';
+        });
+        tbody.innerHTML = html;
+    }
+
+    window.filterAdminCauHoiGvList = function() {
+        const kw = (document.getElementById('adminCauHoiGvSearch').value || '').toLowerCase();
+        const filtered = adminCauHoiGvCache.filter(gv => (gv.hoTen || '').toLowerCase().includes(kw) || (gv.email || '').toLowerCase().includes(kw));
+        renderAdminCauHoiGvTable(filtered);
+    };
+
+    window.drillDownCauHoiGiaoVien = async function(gvId, gvName) {
+        adminCauHoiCurrentGvId = gvId;
+        adminCauHoiCurrentGvName = gvName;
+        document.getElementById('cauHoiGvListView').style.display = 'none';
+        document.getElementById('cauHoiDetailView').style.display = '';
+        document.getElementById('cauHoiDetailTitle').textContent = 'Câu hỏi của: ' + gvName;
+        adminCauHoiPage = 1;
+        loadAdminCauHoiFilterOptions();
+        await loadCauHoiCuaGV();
+    };
+
+    window.quayLaiDanhSachGV_CauHoi = function() {
+        document.getElementById('cauHoiGvListView').style.display = '';
+        document.getElementById('cauHoiDetailView').style.display = 'none';
+    };
+
+    async function loadAdminCauHoiFilterOptions() {
+        try {
+            const res = await fetch('/api/admin/cau-hoi/mon-hoc', { headers: authHeadersJson() });
+            const json = await res.json();
+            const sel = document.getElementById('adminCauHoiFilterMH');
+            if (sel && json.success && json.data) {
+                sel.innerHTML = '<option value="">Tất cả môn học</option>';
+                json.data.forEach(mh => { sel.innerHTML += '<option value="' + mh.id + '">' + escapeHtml(mh.ten) + '</option>'; });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    window.onAdminCauHoiMonHocChange = async function() {
+        const monHocId = document.getElementById('adminCauHoiFilterMH').value;
+        const cdSel = document.getElementById('adminCauHoiFilterCD');
+        cdSel.innerHTML = '<option value="">Tất cả chủ đề</option>';
+        if (monHocId) {
+            try {
+                const res = await fetch('/api/admin/cau-hoi/chu-de?monHocId=' + encodeURIComponent(monHocId), { headers: authHeadersJson() });
+                const json = await res.json();
+                if (json.success && json.data) {
+                    json.data.forEach(cd => { cdSel.innerHTML += '<option value="' + cd.id + '">' + escapeHtml(cd.ten) + '</option>'; });
+                }
+            } catch(e) { console.error(e); }
+        }
+        applyAdminCauHoiFilter();
+    };
+
+    async function loadCauHoiCuaGV() {
+        const tbody = document.getElementById('adminCauHoiTableBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+        const monHocId = document.getElementById('adminCauHoiFilterMH').value;
+        const chuDeId = document.getElementById('adminCauHoiFilterCD').value;
+        const doKho = document.getElementById('adminCauHoiFilterDK').value;
+        const keyword = document.getElementById('adminCauHoiFilterKW').value;
+        let url = '/api/admin/cau-hoi/giao-vien/' + encodeURIComponent(adminCauHoiCurrentGvId) + '?';
+        if (monHocId) url += 'monHocId=' + encodeURIComponent(monHocId) + '&';
+        if (chuDeId) url += 'chuDeId=' + encodeURIComponent(chuDeId) + '&';
+        if (doKho) url += 'doKho=' + encodeURIComponent(doKho) + '&';
+        if (keyword) url += 'keyword=' + encodeURIComponent(keyword) + '&';
+        try {
+            const res = await fetch(url, { headers: authHeadersJson() });
+            if (res.status === 401) { window.location.href = '/login/admin?expired=1'; return; }
+            const json = await res.json();
+            if (!json.success) { if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#e53e3e;">' + (json.message || 'Lỗi') + '</td></tr>'; return; }
+            adminCauHoiCache = json.data || [];
+            adminCauHoiPage = 1;
+            renderAdminCauHoiTable();
+        } catch(e) { console.error(e); if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#e53e3e;">Lỗi kết nối</td></tr>'; }
+    }
+
+    function renderAdminCauHoiTable() {
+        const tbody = document.getElementById('adminCauHoiTableBody');
+        if (!tbody) return;
+        const total = adminCauHoiCache.length;
+        document.getElementById('adminCauHoiCount').textContent = '(' + total + ' câu hỏi)';
+        if (total === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#a0aec0;padding:30px;">Không có câu hỏi nào</td></tr>'; document.getElementById('adminCauHoiPagInfo').textContent = ''; document.getElementById('adminCauHoiPagBtns').innerHTML = ''; return; }
+        const start = (adminCauHoiPage - 1) * ADMIN_CAUHOI_PER_PAGE;
+        const end = Math.min(start + ADMIN_CAUHOI_PER_PAGE, total);
+        const pageItems = adminCauHoiCache.slice(start, end);
+        let html = '';
+        pageItems.forEach((ch, i) => {
+            const doKhoLabel = ch.doKho === 'DE' ? '<span style="color:#48bb78;">😊 Dễ</span>' : ch.doKho === 'KHO' ? '<span style="color:#e53e3e;">😤 Khó</span>' : '<span style="color:#ed8936;">😐 TB</span>';
+            const loaiLabel = ch.loaiCauHoi === 'DUNG_SAI' ? 'Đ/S' : 'MCQ';
+            html += '<tr>';
+            html += '<td>' + (start + i + 1) + '</td>';
+            html += '<td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(truncateText(ch.noiDung, 60)) + '</td>';
+            html += '<td><small>' + escapeHtml(ch.tenMonHoc || '') + '<br><em>' + escapeHtml(ch.tenChuDe || '') + '</em></small></td>';
+            html += '<td>' + loaiLabel + '</td>';
+            html += '<td>' + doKhoLabel + '</td>';
+            html += '<td><strong>' + escapeHtml(ch.dapAnDung || '') + '</strong></td>';
+            html += '<td>' + ch.soDeThiSuDung + ' đề</td>';
+            html += '<td><div class="admin-action-btns">';
+            html += '<button class="btn btn-sm btn-outline" onclick="xemChiTietCauHoiAdmin(\'' + ch.id + '\')"><i class="fas fa-eye"></i></button>';
+            html += '<button class="btn btn-sm btn-outline" style="color:#e53e3e;border-color:#feb2b2;" onclick="moModalXoaCauHoi(\'' + ch.id + '\')"><i class="fas fa-trash"></i></button>';
+            html += '</div></td></tr>';
+        });
+        tbody.innerHTML = html;
+        // Pagination
+        const totalPages = Math.ceil(total / ADMIN_CAUHOI_PER_PAGE);
+        document.getElementById('adminCauHoiPagInfo').textContent = 'Hiển thị ' + (start + 1) + '–' + end + ' / ' + total;
+        let pagHtml = '';
+        for (let p = 1; p <= totalPages; p++) {
+            pagHtml += '<button style="padding:4px 10px;border:1px solid ' + (p === adminCauHoiPage ? '#667eea' : '#e2e8f0') + ';border-radius:6px;background:' + (p === adminCauHoiPage ? '#667eea' : '#fff') + ';color:' + (p === adminCauHoiPage ? '#fff' : '#4a5568') + ';cursor:pointer;font-size:0.85rem;" onclick="adminCauHoiGoToPage(' + p + ')">' + p + '</button>';
+        }
+        document.getElementById('adminCauHoiPagBtns').innerHTML = pagHtml;
+    }
+
+    window.adminCauHoiGoToPage = function(p) { adminCauHoiPage = p; renderAdminCauHoiTable(); };
+    window.applyAdminCauHoiFilter = function() { loadCauHoiCuaGV(); };
+    window.debounceAdminCauHoi = function() { clearTimeout(adminCauHoiDebounceTimer); adminCauHoiDebounceTimer = setTimeout(loadCauHoiCuaGV, 400); };
+    window.resetAdminCauHoiFilter = function() {
+        document.getElementById('adminCauHoiFilterMH').value = '';
+        document.getElementById('adminCauHoiFilterCD').innerHTML = '<option value="">Tất cả chủ đề</option>';
+        document.getElementById('adminCauHoiFilterDK').value = '';
+        document.getElementById('adminCauHoiFilterKW').value = '';
+        loadCauHoiCuaGV();
+    };
+
+    window.xemChiTietCauHoiAdmin = async function(id) {
+        const body = document.getElementById('adminCauHoiChiTietBody');
+        body.innerHTML = '<p style="text-align:center;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>';
+        document.getElementById('modalAdminChiTietCauHoi').style.display = 'flex';
+        try {
+            const res = await fetch('/api/admin/cau-hoi/' + encodeURIComponent(id), { headers: authHeadersJson() });
+            const json = await res.json();
+            if (!json.success) { body.innerHTML = '<p style="color:#e53e3e;text-align:center;">' + (json.message || 'Lỗi') + '</p>'; return; }
+            const ch = json.data;
+            const doKhoLabel = ch.doKho === 'DE' ? '😊 Dễ' : ch.doKho === 'KHO' ? '😤 Khó' : '😐 TB';
+            let html = '<div style="margin-bottom:16px;">';
+            html += '<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">';
+            html += '<span class="badge badge-admin">' + escapeHtml(ch.tenMonHoc || '') + '</span>';
+            html += '<span class="badge badge-info">' + escapeHtml(ch.tenChuDe || '') + '</span>';
+            html += '<span>' + doKhoLabel + '</span>';
+            html += '<span class="badge">' + (ch.loaiCauHoi === 'DUNG_SAI' ? 'Đúng/Sai' : 'Trắc nghiệm') + '</span>';
+            html += '</div>';
+            html += '<p style="font-size:0.82rem;color:#718096;">Giảng viên: <strong>' + escapeHtml(ch.tenNguoiTao || '') + '</strong> (' + escapeHtml(ch.emailNguoiTao || '') + ') · Dùng trong ' + ch.soDeThiSuDung + ' đề</p>';
+            html += '</div>';
+            html += '<div style="background:#f7fafc;border-radius:8px;padding:16px;margin-bottom:16px;border:1px solid #e2e8f0;"><strong>Nội dung:</strong><br>' + escapeHtml(ch.noiDung || '') + '</div>';
+            // Choices
+            const choices = [['A', ch.luaChonA], ['B', ch.luaChonB], ['C', ch.luaChonC], ['D', ch.luaChonD]];
+            html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+            choices.forEach(([label, val]) => {
+                if (!val) return;
+                const isCorrect = ch.dapAnDung && ch.dapAnDung.toUpperCase() === label;
+                html += '<div style="padding:10px 14px;border-radius:8px;border:1.5px solid ' + (isCorrect ? '#48bb78' : '#e2e8f0') + ';background:' + (isCorrect ? '#f0fff4' : '#fff') + ';">';
+                html += '<strong style="color:' + (isCorrect ? '#38a169' : '#718096') + ';">' + label + '.</strong> ' + escapeHtml(val);
+                if (isCorrect) html += ' <i class="fas fa-check-circle" style="color:#48bb78;"></i>';
+                html += '</div>';
+            });
+            html += '</div>';
+            body.innerHTML = html;
+        } catch(e) { console.error(e); body.innerHTML = '<p style="color:#e53e3e;text-align:center;">Lỗi kết nối</p>'; }
+    };
+
+    window.moModalXoaCauHoi = function(id) {
+        document.getElementById('modalAdminXoaCauHoi').style.display = 'flex';
+        document.getElementById('btnAdminXoaCauHoi').onclick = function() { xoaCauHoiAdmin(id); };
+    };
+
+    async function xoaCauHoiAdmin(id) {
+        document.getElementById('modalAdminXoaCauHoi').style.display = 'none';
+        try {
+            const res = await fetch('/api/admin/cau-hoi/' + encodeURIComponent(id), { method: 'DELETE', headers: authHeadersJson() });
+            const json = await res.json();
+            if (!json.success) { alert(json.message || 'Không xóa được'); return; }
+            await loadCauHoiCuaGV();
+        } catch(e) { console.error(e); alert('Lỗi kết nối'); }
+    }
+
 });

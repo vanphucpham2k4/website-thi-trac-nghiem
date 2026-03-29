@@ -54,4 +54,34 @@ public interface CauHoiRepository extends JpaRepository<CauHoi, String> {
      */
     @Query("SELECT COUNT(dc) FROM DeThiCauHoi dc WHERE dc.cauHoi.id = :cauHoiId")
     long demSoDeThiSuDung(@Param("cauHoiId") String cauHoiId);
+
+    // ================================================================
+    // ADMIN QUERIES — xem câu hỏi của bất kỳ giáo viên nào
+    // ================================================================
+
+    /**
+     * Admin: lọc câu hỏi của 1 giáo viên cụ thể.
+     */
+    @Query("""
+        SELECT c FROM CauHoi c
+        WHERE c.nguoiDung.id = :nguoiDungId
+          AND (:monHocId IS NULL OR c.chuDe.monHoc.id = :monHocId)
+          AND (:chuDeId IS NULL OR c.chuDe.id = :chuDeId)
+          AND (:doKho IS NULL OR c.doKho = :doKho)
+          AND (:keyword IS NULL OR LOWER(c.noiDung) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY c.id DESC
+        """)
+    List<CauHoi> adminLocCauHoiTheoGiaoVien(
+            @Param("nguoiDungId") String nguoiDungId,
+            @Param("monHocId") String monHocId,
+            @Param("chuDeId") String chuDeId,
+            @Param("doKho") String doKho,
+            @Param("keyword") String keyword);
+
+    /**
+     * Admin: đếm câu hỏi nhóm theo giáo viên + độ khó.
+     * Trả về [nguoiDungId, doKho, count].
+     */
+    @Query("SELECT c.nguoiDung.id, c.doKho, COUNT(c) FROM CauHoi c GROUP BY c.nguoiDung.id, c.doKho")
+    List<Object[]> adminDemCauHoiTheoGiaoVienVaDoKho();
 }

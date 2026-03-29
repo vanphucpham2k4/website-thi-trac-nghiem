@@ -32,4 +32,6 @@ public interface ChuDeRepository extends JpaRepository<ChuDe, String> {
      * @return true nếu đã tồn tại
      */
     boolean existsByTenAndMonHoc(String ten, MonHoc monHoc);
+
+    List<ChuDe> findByMonHocId(String monHocId);
 }
