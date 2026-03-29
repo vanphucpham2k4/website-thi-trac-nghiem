@@ -173,6 +173,9 @@ public class AdminNguoiDungService {
         if (nd == null) {
             return ApiResponse.error("Không tìm thấy người dùng.", AuthService.ERR_TAI_KHOAN_KHONG_TON_TAI);
         }
+        if ("ADMIN001".equals(nd.getMaNguoiDung())) {
+            return ApiResponse.error("Không thể xóa tài khoản quản trị mặc định của hệ thống.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
+        }
         if (AuthService.ROLE_ADMIN.equals(layVaiTroChinh(idMucTieu))
                 && nguoiDungVaiTroRepository.countByVaiTro_TenVaiTro(AuthService.ROLE_ADMIN) <= 1) {
             return ApiResponse.error("Không thể xóa tài khoản quản trị duy nhất.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);

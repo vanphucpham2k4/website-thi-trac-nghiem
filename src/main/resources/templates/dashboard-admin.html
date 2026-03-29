@@ -499,6 +499,111 @@
             </div>
         </div>
 
+        <!-- Hồ sơ cá nhân Admin -->
+        <div class="dashboard-content admin-user-page" id="pageHoSo" style="display: none;">
+            <div class="dashboard-card admin-profile-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-circle" style="color:#667eea;"></i> Hồ Sơ Cá Nhân</h3>
+                </div>
+                <div class="admin-profile-layout">
+                    <!-- Avatar & role info -->
+                    <div class="admin-profile-sidebar">
+                        <div class="admin-profile-avatar-wrap">
+                            <div class="admin-profile-avatar">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="admin-profile-role-badge">
+                                <i class="fas fa-shield-alt"></i> Quản trị viên
+                            </div>
+                        </div>
+                        <div class="admin-profile-info-summary" id="adminProfileInfoSummary">
+                            <div class="profile-info-row">
+                                <i class="fas fa-id-badge"></i>
+                                <span id="profileMaNguoiDung">—</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <i class="fas fa-envelope"></i>
+                                <span id="profileEmail">—</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <i class="fas fa-phone"></i>
+                                <span id="profileSdt">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Edit form -->
+                    <div class="admin-profile-form-wrap">
+                        <div class="admin-profile-section-title">
+                            <i class="fas fa-edit"></i> Thông tin cá nhân
+                        </div>
+                        <div id="adminHoSoMsg" class="admin-inline-msg" hidden></div>
+                        <div class="admin-profile-form-grid">
+                            <div class="form-field">
+                                <label for="profileHo">Họ <span class="req-star">*</span></label>
+                                <input type="text" id="profileHo" autocomplete="given-name" maxlength="50">
+                            </div>
+                            <div class="form-field">
+                                <label for="profileTen">Tên <span class="req-star">*</span></label>
+                                <input type="text" id="profileTen" autocomplete="family-name" maxlength="50">
+                            </div>
+                            <div class="form-field">
+                                <label for="profileEmailInput">Email <span class="req-star">*</span></label>
+                                <input type="email" id="profileEmailInput" autocomplete="email">
+                            </div>
+                            <div class="form-field">
+                                <label for="profileSdtInput">Số điện thoại <span class="req-star">*</span></label>
+                                <input type="tel" id="profileSdtInput" autocomplete="tel" maxlength="20">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveProfile" style="margin-top:16px; min-width:140px;">
+                            <i class="fas fa-save"></i> Lưu thông tin
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Đổi mật khẩu -->
+            <div class="dashboard-card admin-profile-card" style="margin-top:20px;">
+                <div class="card-header">
+                    <h3><i class="fas fa-key" style="color:#ed8936;"></i> Đổi mật khẩu</h3>
+                </div>
+                <div id="adminDoiMkMsg" class="admin-inline-msg" hidden></div>
+                <div class="admin-pw-form">
+                    <div class="form-field">
+                        <label for="profileMkCu">Mật khẩu hiện tại <span class="req-star">*</span></label>
+                        <div class="admin-pw-input-wrap">
+                            <input type="password" id="profileMkCu" autocomplete="current-password" minlength="6">
+                            <button type="button" class="admin-pw-toggle" onclick="togglePasswordField('profileMkCu', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label for="profileMkMoi">Mật khẩu mới (tối thiểu 6 ký tự) <span class="req-star">*</span></label>
+                        <div class="admin-pw-input-wrap">
+                            <input type="password" id="profileMkMoi" autocomplete="new-password" minlength="6">
+                            <button type="button" class="admin-pw-toggle" onclick="togglePasswordField('profileMkMoi', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label for="profileMkMoiLai">Nhập lại mật khẩu mới <span class="req-star">*</span></label>
+                        <div class="admin-pw-input-wrap">
+                            <input type="password" id="profileMkMoiLai" autocomplete="new-password" minlength="6">
+                            <button type="button" class="admin-pw-toggle" onclick="togglePasswordField('profileMkMoiLai', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" id="btnSavePassword" style="margin-top:16px; min-width:180px;">
+                    <i class="fas fa-key"></i> Cập nhật mật khẩu
+                </button>
+            </div>
+        </div>
+
         <!-- ===== TRANG QUẢN LÝ CÂU HỎI ===== -->
         <div class="dashboard-content admin-user-page" id="pageQuanLyCauHoi" style="display: none;">
             <!-- Sub-view 1: Danh sách giảng viên -->
