@@ -93,12 +93,13 @@ public class SinhVienThiController {
     @PostMapping("/phien/{phienThiId}/nop-bai")
     public ResponseEntity<ApiResponse<SinhVienKetQuaThiDTO>> nopBai(
             HttpServletRequest request,
-            @PathVariable String phienThiId) {
+            @PathVariable String phienThiId,
+            @RequestBody(required = false) SinhVienLuuTraLoiDTO body) {
         String svId = layUserIdSinhVien(request);
         if (svId == null) {
             return unauthorized();
         }
-        ApiResponse<SinhVienKetQuaThiDTO> res = sinhVienThiService.nopBai(svId, phienThiId);
+        ApiResponse<SinhVienKetQuaThiDTO> res = sinhVienThiService.nopBai(svId, phienThiId, body);
         if (!res.isSuccess()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
         }
