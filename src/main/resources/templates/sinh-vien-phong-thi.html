@@ -43,6 +43,17 @@
             line-height: 1.45;
         }
         .lop-card-meta strong { color: #4a5568; font-weight: 600; }
+        /* Có đề mới xuất bản — nhấp nháy 2 nhịp (realtime polling) */
+        .lop-card.lop-card-flash {
+            animation: lopCardFlashTwice 1.35s ease;
+        }
+        @keyframes lopCardFlashTwice {
+            0%, 100% { box-shadow: none; transform: scale(1); border-color: #e2e8f0; }
+            15% { box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.45); transform: scale(1.02); border-color: #a3bffa; }
+            30% { box-shadow: none; transform: scale(1); border-color: #e2e8f0; }
+            45% { box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.45); transform: scale(1.02); border-color: #a3bffa; }
+            60% { box-shadow: none; transform: scale(1); }
+        }
         #toastContainer {
             position: fixed; bottom: 24px; right: 24px; z-index: 9999;
             display: flex; flex-direction: column; gap: 10px;

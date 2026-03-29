@@ -124,4 +124,44 @@ public class KiemTraLuotThiService {
                     "Lỗi hệ thống khi kiểm tra lượt thi: " + e.getMessage());
         }
     }
+
+    /**
+     * Kiểm tra lượt thi cho người ẩn danh (cùng đề + họ tên đã chuẩn hóa).
+     */
+    public KetQuaLuotThi kiemTraAnDanh(String deThiId, String hoTenDaChuanHoa) {
+        try {
+            Optional<DeThi> optDe = deThiRepository.findByIdAndNotDeleted(deThiId);
+            if (optDe.isEmpty()) {
+                return new KetQuaLuotThi(null, KetQuaLuotThi.LoaiKetQua.NOT_FOUND, "Không tìm thấy đề thi.");
+            }
+            DeThi deThi = optDe.get();
+
+            Optional<PhienThi> optPhienDangDo =
+                    phienThiRepository.findByDeThiAndNguoiDungIsNullAndHoTenAnDanhAndThoiGianBatDauIsNotNullAndThoiGianNopIsNull(
+                            deThi, hoTenDaChuanHoa);
+            if (optPhienDangDo.isPresent()) {
+                return new KetQuaLuotThi(
+                        optPhienDangDo.get().getId(),
+                        KetQuaLuotThi.LoaiKetQua.IN_PROGRESS,
+                        "Bạn có phiên đang dở. Hệ thống sẽ tiếp tục phiên cũ.");
+            }
+
+            if (deThi.getSoLanThiToiDa() == null) {
+                return new KetQuaLuotThi(null, KetQuaLuotThi.LoaiKetQua.ALLOWED, null);
+            }
+
+            long soLanDaNop = phienThiRepository.countByDeThiAndNguoiDungIsNullAndHoTenAnDanhAndThoiGianNopIsNotNull(
+                    deThi, hoTenDaChuanHoa);
+            if (soLanDaNop >= deThi.getSoLanThiToiDa()) {
+                return new KetQuaLuotThi(null,
+                        KetQuaLuotThi.LoaiKetQua.LIMIT_REACHED,
+                        "Bạn đã sử dụng hết " + deThi.getSoLanThiToiDa() + " lượt thi của đề này.");
+            }
+
+            return new KetQuaLuotThi(null, KetQuaLuotThi.LoaiKetQua.ALLOWED, null);
+        } catch (Exception e) {
+            return new KetQuaLuotThi(null, KetQuaLuotThi.LoaiKetQua.ERROR,
+                    "Lỗi hệ thống khi kiểm tra lượt thi: " + e.getMessage());
+        }
+    }
 }

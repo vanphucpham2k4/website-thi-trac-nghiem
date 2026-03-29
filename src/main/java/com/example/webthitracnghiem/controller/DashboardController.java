@@ -93,6 +93,39 @@ public class DashboardController {
     }
 
     /**
+     * Xem lại chi tiết một bài đã nộp (lịch sử thi).
+     * URL: GET /dashboard/sinh-vien/lich-su-thi/{phienThiId}
+     */
+    @GetMapping("/sinh-vien/lich-su-thi/{phienThiId}")
+    public String trangLichSuThiChiTiet(@PathVariable String phienThiId, Model model) {
+        model.addAttribute("phienThiId", phienThiId);
+        model.addAttribute("thiAnDanh", false);
+        return "sinh-vien-lich-su-chi-tiet";
+    }
+
+    /**
+     * Làm bài thi (theo phiên).
+     * URL: GET /dashboard/sinh-vien/lam-bai/{phienThiId}
+     */
+    @GetMapping("/sinh-vien/lam-bai/{phienThiId}")
+    public String trangLamBai(@PathVariable String phienThiId, Model model) {
+        model.addAttribute("phienThiId", phienThiId);
+        model.addAttribute("thiAnDanh", false);
+        return "sinh-vien-lam-bai";
+    }
+
+    /**
+     * Kết quả bài thi sau khi nộp.
+     * URL: GET /dashboard/sinh-vien/ket-qua/{phienThiId}
+     */
+    @GetMapping("/sinh-vien/ket-qua/{phienThiId}")
+    public String trangKetQuaThi(@PathVariable String phienThiId, Model model) {
+        model.addAttribute("phienThiId", phienThiId);
+        model.addAttribute("thiAnDanh", false);
+        return "sinh-vien-ket-qua-thi";
+    }
+
+    /**
      * Trả về trang Dashboard của GIÁO VIÊN
      * URL: GET /dashboard/giao-vien
      *

@@ -8,6 +8,17 @@
 // ============================================
 // Lấy các element cần thao tác trong DOM
 
+/** Chỉ cho phép đường dẫn nội bộ (tránh open redirect). */
+function layRedirectNoiBoAnToan() {
+    const raw = new URLSearchParams(window.location.search).get('redirect');
+    if (!raw || typeof raw !== 'string') return null;
+    const p = raw.trim();
+    if (!p.startsWith('/') || p.startsWith('//')) return null;
+    if (p.includes('://')) return null;
+    if (p.includes('\\')) return null;
+    return p;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Form đăng nhập
     const loginForm = document.getElementById('loginForm');
@@ -209,8 +220,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Chuyển hướng sau 1.5 giây
                     setTimeout(() => {
-                        // Chuyển hướng theo vai trò
                         const vaiTro = result.data?.nguoiDung?.vaiTro;
+                        const redirect = layRedirectNoiBoAnToan();
+                        if (vaiTro === 'SINH_VIEN' && redirect) {
+                            window.location.href = redirect;
+                            return;
+                        }
                         if (vaiTro === 'GIAO_VIEN') {
                             window.location.href = '/dashboard/giao-vien';
                         } else if (vaiTro === 'SINH_VIEN') {

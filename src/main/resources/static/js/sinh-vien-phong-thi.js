@@ -3,6 +3,8 @@
  */
 const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
 const API_LOP = '/api/sinh-vien/lop-phong-thi';
+/** localStorage: map lopId -> fingerprint danh sách đề (polling realtime) */
+const LS_LOP_DE_FP = 'sv_lop_de_fp_v1';
 
 function isTokenExpired() {
     const expiresAt = storage.getItem('tokenExpiresAt');
@@ -70,6 +72,67 @@ function setupLogout() {
     });
 }
 
+function docFpMap() {
+    try {
+        return JSON.parse(localStorage.getItem(LS_LOP_DE_FP) || '{}');
+    } catch {
+        return {};
+    }
+}
+function luuFpMap(m) {
+    localStorage.setItem(LS_LOP_DE_FP, JSON.stringify(m));
+}
+/** Chuỗi đại diện danh sách đề trong lớp (để so sánh khi GV xuất bản) */
+function vanTayDeThiTrongLop(arr) {
+    return (arr || [])
+        .map((d) => `${d.deThiId || ''}|${d.thoiGianXuatBan || ''}`)
+        .sort()
+        .join(';');
+}
+function chopNhayLopCard(lopId) {
+    const id = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(lopId) : lopId.replace(/"/g, '');
+    const el = document.querySelector(`.lop-card[data-lop-id="${id}"]`);
+    if (!el) return;
+    el.classList.remove('lop-card-flash');
+    void el.offsetWidth;
+    el.classList.add('lop-card-flash');
+    setTimeout(() => el.classList.remove('lop-card-flash'), 1400);
+}
+let daKhoiTaoFpLop = false;
+/** Chữ ký danh sách lớp (chỉ render lại grid khi thay đổi — tránh chớp màn khi poll) */
+function chuoiKyLop(list) {
+    return (list || [])
+        .map((r) => r.lopId)
+        .filter(Boolean)
+        .sort()
+        .join(',');
+}
+/** Gọi sau khi đã có danh sách lớp: so fingerprint đề, nhấp nháy card nếu có thay đổi */
+async function capNhatFingerprintDeThiTheoLop(list) {
+    const map = docFpMap();
+    for (const row of list || []) {
+        const lid = row.lopId;
+        if (!lid) continue;
+        try {
+            const res = await fetch(`${API_LOP}/${encodeURIComponent(lid)}/de-thi`, {
+                headers: { Authorization: `Bearer ${getToken()}` }
+            });
+            const json = await res.json();
+            if (!json.success) continue;
+            const fpMoi = vanTayDeThiTrongLop(json.data);
+            const fpCu = map[lid];
+            if (daKhoiTaoFpLop && fpCu !== undefined && fpCu !== fpMoi) {
+                chopNhayLopCard(lid);
+            }
+            map[lid] = fpMoi;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    luuFpMap(map);
+    daKhoiTaoFpLop = true;
+}
+
 function renderLopGrid(list) {
     const loading = document.getElementById('lopGridLoading');
     const grid = document.getElementById('lopGrid');
@@ -98,6 +161,29 @@ function renderLopGrid(list) {
             if (lid) window.location.href = `/dashboard/sinh-vien/phong-thi/${encodeURIComponent(lid)}`;
         });
     });
+    grid.dataset.lopSig = chuoiKyLop(list);
+}
+
+/** Poll nhẹ: không vẽ lại card lớp nếu danh sách lớp không đổi */
+async function pollPhongThi() {
+    const res = await fetch(API_LOP, { headers: { Authorization: `Bearer ${getToken()}` } });
+    const json = await res.json();
+    if (res.status === 401) {
+        storage.removeItem('nguoiDung');
+        storage.removeItem('vaiTro');
+        storage.removeItem('token');
+        storage.removeItem('tokenExpiresAt');
+        window.location.href = '/login?expired=1';
+        return;
+    }
+    if (!json.success) return;
+    const data = json.data || [];
+    const grid = document.getElementById('lopGrid');
+    const sig = chuoiKyLop(data);
+    if (grid && grid.dataset.lopSig !== sig) {
+        renderLopGrid(data);
+    }
+    await capNhatFingerprintDeThiTheoLop(data);
 }
 
 async function taiDanhSachLop() {
@@ -116,7 +202,9 @@ async function taiDanhSachLop() {
         renderLopGrid([]);
         return;
     }
-    renderLopGrid(json.data || []);
+    const data = json.data || [];
+    renderLopGrid(data);
+    capNhatFingerprintDeThiTheoLop(data);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -152,5 +240,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (document.getElementById('lopGrid')) {
         taiDanhSachLop();
+        setInterval(pollPhongThi, 12000);
     }
 });

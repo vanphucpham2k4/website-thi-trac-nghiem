@@ -29,19 +29,22 @@ public class DeThiService {
     private final PhienThiRepository phienThiRepository;
     private final DeThiCauHoiRepository deThiCauHoiRepository;
     private final CauHoiRepository cauHoiRepository;
+    private final DeThiLopHocRepository deThiLopHocRepository;
 
     public DeThiService(DeThiRepository deThiRepository,
                         MonHocRepository monHocRepository,
                         NguoiDungRepository nguoiDungRepository,
                         PhienThiRepository phienThiRepository,
                         DeThiCauHoiRepository deThiCauHoiRepository,
-                        CauHoiRepository cauHoiRepository) {
+                        CauHoiRepository cauHoiRepository,
+                        DeThiLopHocRepository deThiLopHocRepository) {
         this.deThiRepository = deThiRepository;
         this.monHocRepository = monHocRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.phienThiRepository = phienThiRepository;
         this.deThiCauHoiRepository = deThiCauHoiRepository;
         this.cauHoiRepository = cauHoiRepository;
+        this.deThiLopHocRepository = deThiLopHocRepository;
     }
 
     // ================================================================
@@ -268,7 +271,8 @@ public class DeThiService {
                     AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
 
-        // Xóa các liên kết câu hỏi trước, sau đó xóa đề thi
+        // Xóa liên kết lớp + câu hỏi, sau đó xóa đề thi
+        deThiLopHocRepository.deleteByDeThi(deThi);
         deThiCauHoiRepository.deleteByDeThi(deThi);
         deThiRepository.delete(deThi);
 
@@ -311,6 +315,9 @@ public class DeThiService {
         dto.setTronCauHoi(deThi.getTronCauHoi());
         dto.setTronDapAn(deThi.getTronDapAn());
         dto.setDaBiXoa(deThi.getDeletedAt() != null);
+        dto.setDaXuatBan(!deThiLopHocRepository.findByDeThi(deThi).isEmpty());
+        String ma = deThi.getMaTruyCap();
+        dto.setCoLinkThamGia(ma != null && !ma.isBlank());
         dto.setDeletedAt(deThi.getDeletedAt());
         dto.setThoiGianTao(deThi.getThoiGianTao());
 

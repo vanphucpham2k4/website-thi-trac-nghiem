@@ -23,6 +23,14 @@ let currentTab     = 'active';
 let editingDeThiId = null; // ID đang sửa (null = tạo mới)
 let pendingDeleteId = null;
 let importedQuestions = []; // Câu hỏi từ file import
+/** ID đề thi đang mở modal xuất bản */
+let xuatBanDeThiId = null;
+/** ID đề thi đang mở modal thu hồi */
+let thuHoiDeThiId = null;
+/** Lớp đang chọn thu hồi (mở confirm) */
+let thuHoiLopHienTai = null;
+/** ID đề đang mở modal xuất link tham gia công khai */
+let linkThamGiaDeThiId = null;
 
 const THOI_GIAN_PHUT_OPTIONS = [15, 30, 45, 60, 90, 120, 180];
 
@@ -303,7 +311,26 @@ function renderActions(d) {
                 <i class="fas fa-times-circle"></i>
             </button>`;
     }
+    const coTheXuatBan = d.trangThai === 'CONG_KHAI' && (d.soCauHoi || 0) > 0;
+    const nutXuatBan = coTheXuatBan
+        ? `<button class="btn-icon btn-icon-publish" title="Xuất bản vào lớp" type="button" onclick="moModalXuatBan('${d.id}')">
+                <i class="fas fa-bullhorn"></i>
+           </button>`
+        : '';
+    const nutThuHoi = d.daXuatBan
+        ? `<button class="btn-icon btn-icon-recall" title="Thu hồi xuất bản" type="button" onclick="moModalThuHoi('${d.id}')">
+                <i class="fas fa-undo-alt"></i>
+           </button>`
+        : '';
+    const nutLinkThamGia = coTheXuatBan
+        ? `<button class="btn-icon btn-icon-link-share" title="Xuất link tham gia công khai" type="button" onclick="moModalLinkThamGia('${d.id}')">
+                <i class="fas fa-link"></i>
+           </button>`
+        : '';
     return `
+        ${nutThuHoi}
+        ${nutLinkThamGia}
+        ${nutXuatBan}
         <button class="btn-icon btn-icon-question" title="Quản lý câu hỏi" type="button"
                 onclick="window.location.href='/dashboard/giao-vien/de-thi/${d.id}/chinh-sua-cau-hoi'">
             <i class="fas fa-list-ol"></i>
@@ -314,6 +341,244 @@ function renderActions(d) {
         <button class="btn-icon btn-icon-delete" title="Xóa mềm" onclick="moConfirmXoa('${d.id}','${escHtml(d.tenDeThi)}')">
             <i class="fas fa-trash-alt"></i>
         </button>`;
+}
+
+async function moModalXuatBan(deThiId) {
+    if (!kiemTraXacThuc()) return;
+    xuatBanDeThiId = deThiId;
+    const sel = document.getElementById('selectLopXuatBan');
+    if (sel) {
+        sel.innerHTML = '<option value="">Đang tải…</option>';
+    }
+    moModal('modalXuatBan');
+    try {
+        const res = await apiGet(`${API_BASE}/${encodeURIComponent(deThiId)}/lop-hoc-xuat-ban`);
+        if (!res.success || !sel) {
+            showToast(res.message || 'Không tải được danh sách lớp.', 'error');
+            return;
+        }
+        const lops = res.data || [];
+        if (!lops.length) {
+            sel.innerHTML = '<option value="">Bạn chưa có lớp nào — hãy tạo ở Quản lý lớp học</option>';
+            return;
+        }
+        sel.innerHTML = '<option value="">— Chọn lớp học —</option>' +
+            lops.map((l) => `<option value="${escHtml(l.id)}">${escHtml(l.tenLop || l.id)}</option>`).join('');
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi tải danh sách lớp.', 'error');
+    }
+}
+
+async function xacNhanXuatBanDeThi() {
+    if (!xuatBanDeThiId || !kiemTraXacThuc()) return;
+    const sel = document.getElementById('selectLopXuatBan');
+    const lopId = sel ? sel.value : '';
+    if (!lopId) {
+        showToast('Vui lòng chọn lớp học.', 'error');
+        return;
+    }
+    try {
+        const res = await apiPost(`${API_BASE}/${encodeURIComponent(xuatBanDeThiId)}/xuat-ban-cho-lop`, { lopHocId: lopId });
+        if (!res.success) {
+            showToast(res.message || 'Xuất bản thất bại.', 'error');
+            return;
+        }
+        showToast(res.message || 'Đã xuất bản.', 'success');
+        dongModal('modalXuatBan');
+        xuatBanDeThiId = null;
+        taiDanhSachDeThi(); // reload để cập nhật trạng thái xuất bản
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
+}
+
+async function moModalThuHoi(deThiId) {
+    if (!kiemTraXacThuc()) return;
+    thuHoiDeThiId = deThiId;
+    const wrap = document.getElementById('danhSachLopDaXuatBan');
+    const empty = document.getElementById('thuHoiEmpty');
+    if (wrap) wrap.innerHTML = '<div style="text-align:center;color:#a0aec0;padding:1.5rem;">Đang tải…</div>';
+    if (empty) empty.style.display = 'none';
+    moModal('modalThuHoi');
+    try {
+        const res = await apiGet(`${API_BASE}/${encodeURIComponent(deThiId)}/lop-hoc-da-xuat-ban`);
+        if (!res.success) {
+            showToast(res.message || 'Không tải được danh sách lớp.', 'error');
+            return;
+        }
+        hienThiLopDaXuatBan(res.data || []);
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
+}
+
+function hienThiLopDaXuatBan(lops) {
+    const wrap = document.getElementById('danhSachLopDaXuatBan');
+    const empty = document.getElementById('thuHoiEmpty');
+    if (!wrap) return;
+    if (!lops.length) {
+        wrap.innerHTML = '';
+        if (empty) empty.style.display = '';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    wrap.innerHTML = lops
+        .map((l) => {
+            const thoiGian = l.thoiGianXuatBan
+                ? new Date(l.thoiGianXuatBan.replace(' ', 'T')).toLocaleString('vi-VN')
+                : '—';
+            const sv = l.soSinhVien != null ? l.soSinhVien : 0;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+                        padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px;background:#fafbff;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;color:#2d3748;font-size:0.92rem;">${escHtml(l.tenLop || l.id)}</div>
+                    <div style="font-size:0.78rem;color:#718096;margin-top:2px;">
+                        Xuất bản: ${thoiGian} · ${sv} SV
+                    </div>
+                </div>
+                <button type="button" onclick="thuHoiKhoiLop('${escHtml(l.id)}','${escHtml(l.tenLop || l.id)}')"
+                        style="padding:8px 14px;border:1.5px solid #e53e3e;border-radius:8px;
+                               background:#fff5f5;color:#e53e3e;font-family:inherit;font-weight:600;font-size:0.82rem;cursor:pointer;white-space:nowrap;">
+                    <i class="fas fa-undo-alt"></i> Thu hồi
+                </button>
+            </div>`;
+        })
+        .join('');
+}
+
+function thuHoiKhoiLop(lopId, tenLop) {
+    thuHoiLopHienTai = { lopId, tenLop };
+    const el = document.getElementById('confirmThuHoiTenLop');
+    if (el) el.textContent = tenLop || lopId;
+    moModal('modalConfirmThuHoi');
+}
+
+async function thucHienThuHoi() {
+    if (!thuHoiDeThiId || !thuHoiLopHienTai || !kiemTraXacThuc()) return;
+    const { lopId } = thuHoiLopHienTai;
+    const btn = document.getElementById('btnXacNhanThuHoi');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý…'; }
+    try {
+        const res = await apiPost(`${API_BASE}/${encodeURIComponent(thuHoiDeThiId)}/thu-hoi-cho-lop`, { lopHocId: lopId });
+        dongModal('modalConfirmThuHoi');
+        if (!res.success) {
+            showToast(res.message || 'Thu hồi thất bại.', 'error');
+            return;
+        }
+        showToast(res.message || 'Đã thu hồi.', 'success');
+        thuHoiLopHienTai = null;
+        // Tải lại danh sách lớp trong modal
+        await moModalThuHoi(thuHoiDeThiId);
+        // Reload bảng để ẩn/hiện nút Thu hồi nếu không còn lớp nào
+        taiDanhSachDeThi();
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> Thu hồi'; }
+    }
+}
+
+// ============================================================
+// MODAL: LINK THAM GIA CÔNG KHAI
+// ============================================================
+function capNhatGiaoDienModalLink(dto) {
+    const inp = document.getElementById('inputLinkThamGiaFull');
+    const st = document.getElementById('linkThamGiaTrangThai');
+    const btnTao = document.getElementById('btnTaoLinkThamGia');
+    const btnCopy = document.getElementById('btnSaoChepLinkThamGia');
+    const btnThuHoi = document.getElementById('btnThuHoiLinkThamGia');
+    const btnSinhMoi = document.getElementById('btnSinhMaLinkMoi');
+    const co = dto && dto.maTruyCap;
+    const full = co && dto.duongDanTuongDoi ? (window.location.origin + dto.duongDanTuongDoi) : '';
+    if (inp) inp.value = full;
+    if (st) st.textContent = co ? 'Link đang hoạt động. Có thể sao chép hoặc thu hồi.' : 'Chưa có link công khai — nhấn «Tạo link» để sinh mã.';
+    if (btnTao) btnTao.style.display = co ? 'none' : 'inline-flex';
+    if (btnCopy) btnCopy.disabled = !co;
+    if (btnThuHoi) btnThuHoi.disabled = !co;
+    if (btnSinhMoi) btnSinhMoi.disabled = !co;
+}
+
+async function moModalLinkThamGia(deThiId) {
+    if (!kiemTraXacThuc()) return;
+    linkThamGiaDeThiId = deThiId;
+    moModal('modalLinkThamGia');
+    capNhatGiaoDienModalLink(null);
+    const st = document.getElementById('linkThamGiaTrangThai');
+    if (st) st.textContent = 'Đang tải…';
+    try {
+        const res = await apiGet(`${API_BASE}/${encodeURIComponent(deThiId)}/link-tham-gia`);
+        if (!res.success) {
+            showToast(res.message || 'Không tải được trạng thái link.', 'error');
+            return;
+        }
+        capNhatGiaoDienModalLink(res.data);
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+        capNhatGiaoDienModalLink(null);
+    }
+}
+
+async function thucHienTaoLinkThamGia(taoMoi) {
+    if (!linkThamGiaDeThiId || !kiemTraXacThuc()) return;
+    try {
+        const res = await apiPost(
+            `${API_BASE}/${encodeURIComponent(linkThamGiaDeThiId)}/tao-link-tham-gia`,
+            { taoMoi: !!taoMoi }
+        );
+        if (!res.success) {
+            showToast(res.message || 'Không tạo được link.', 'error');
+            return;
+        }
+        showToast(taoMoi ? 'Đã sinh mã mới.' : 'Đã tạo link tham gia.', 'success');
+        capNhatGiaoDienModalLink(res.data);
+        taiDanhSachDeThi();
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
+}
+
+function xacNhanSinhMaLinkMoi() {
+    if (!confirm('Sinh mã mới sẽ vô hiệu hóa link cũ. Người đang giữ link cũ sẽ không vào được đề. Tiếp tục?')) return;
+    thucHienTaoLinkThamGia(true);
+}
+
+async function saoChepLinkThamGia() {
+    const inp = document.getElementById('inputLinkThamGiaFull');
+    const t = inp ? inp.value.trim() : '';
+    if (!t) {
+        showToast('Chưa có link để sao chép.', 'error');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(t);
+        showToast('Đã sao chép vào clipboard.', 'success');
+    } catch (_) {
+        showToast('Trình duyệt không cho phép sao chép tự động.', 'error');
+    }
+}
+
+async function thuHoiLinkThamGia() {
+    if (!linkThamGiaDeThiId || !kiemTraXacThuc()) return;
+    if (!confirm('Thu hồi link? Mọi người sẽ không còn mở được đề qua link này.')) return;
+    try {
+        const res = await apiDelete(`${API_BASE}/${encodeURIComponent(linkThamGiaDeThiId)}/link-tham-gia`);
+        if (!res.success) {
+            showToast(res.message || 'Thu hồi thất bại.', 'error');
+            return;
+        }
+        showToast(res.message || 'Đã thu hồi link.', 'success');
+        capNhatGiaoDienModalLink(null);
+        taiDanhSachDeThi();
+    } catch (e) {
+        console.error(e);
+        showToast('Lỗi kết nối.', 'error');
+    }
 }
 
 function badgeTrangThai(trangThai, daBiXoa) {

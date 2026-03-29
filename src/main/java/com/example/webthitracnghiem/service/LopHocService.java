@@ -9,6 +9,7 @@ import com.example.webthitracnghiem.dto.SinhVienLopPhongThiItemDTO;
 import com.example.webthitracnghiem.model.LopHoc;
 import com.example.webthitracnghiem.model.LopHocSinhVien;
 import com.example.webthitracnghiem.model.NguoiDung;
+import com.example.webthitracnghiem.repository.DeThiLopHocRepository;
 import com.example.webthitracnghiem.repository.LopHocRepository;
 import com.example.webthitracnghiem.repository.LopHocSinhVienRepository;
 import com.example.webthitracnghiem.repository.NguoiDungRepository;
@@ -31,14 +32,17 @@ public class LopHocService {
     private final LopHocRepository lopHocRepository;
     private final LopHocSinhVienRepository lopHocSinhVienRepository;
     private final NguoiDungRepository nguoiDungRepository;
+    private final DeThiLopHocRepository deThiLopHocRepository;
 
     public LopHocService(
             LopHocRepository lopHocRepository,
             LopHocSinhVienRepository lopHocSinhVienRepository,
-            NguoiDungRepository nguoiDungRepository) {
+            NguoiDungRepository nguoiDungRepository,
+            DeThiLopHocRepository deThiLopHocRepository) {
         this.lopHocRepository = lopHocRepository;
         this.lopHocSinhVienRepository = lopHocSinhVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
+        this.deThiLopHocRepository = deThiLopHocRepository;
     }
 
     @Transactional(readOnly = true)
@@ -167,6 +171,7 @@ public class LopHocService {
             return ApiResponse.error("Không tìm thấy lớp học hoặc bạn không có quyền.", AuthService.ERR_DU_LIEU_KHONG_HOP_LE);
         }
         LopHoc lop = lopOpt.get();
+        deThiLopHocRepository.deleteByLopHoc(lop);
         lopHocSinhVienRepository.deleteByLopHoc(lop);
         lopHocRepository.delete(lop);
         return ApiResponse.success("Đã xóa lớp học.", null);

@@ -1,10 +1,12 @@
 package com.example.webthitracnghiem.controller;
 
 import com.example.webthitracnghiem.dto.ApiResponse;
+import com.example.webthitracnghiem.dto.SinhVienDeThiTrongLopDTO;
 import com.example.webthitracnghiem.dto.SinhVienLopPhongThiChiTietDTO;
 import com.example.webthitracnghiem.dto.SinhVienLopPhongThiItemDTO;
 import com.example.webthitracnghiem.service.AuthService;
 import com.example.webthitracnghiem.service.LopHocService;
+import com.example.webthitracnghiem.service.SinhVienThiService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +25,11 @@ import java.util.List;
 public class SinhVienLopPhongThiController {
 
     private final LopHocService lopHocService;
+    private final SinhVienThiService sinhVienThiService;
 
-    public SinhVienLopPhongThiController(LopHocService lopHocService) {
+    public SinhVienLopPhongThiController(LopHocService lopHocService, SinhVienThiService sinhVienThiService) {
         this.lopHocService = lopHocService;
+        this.sinhVienThiService = sinhVienThiService;
     }
 
     @GetMapping
@@ -54,6 +58,25 @@ public class SinhVienLopPhongThiController {
         ApiResponse<SinhVienLopPhongThiChiTietDTO> res = lopHocService.layChiTietChoSinhVien(svId, lopId);
         if (!res.isSuccess()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(res);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    /**
+     * Đề thi đã xuất bản trong lớp (danh sách cho trang chi tiết lớp).
+     */
+    @GetMapping("/{lopId}/de-thi")
+    public ResponseEntity<ApiResponse<List<SinhVienDeThiTrongLopDTO>>> deThiTrongLop(
+            HttpServletRequest request,
+            @PathVariable String lopId) {
+        String svId = layUserIdSinhVienTuJwt(request);
+        if (svId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Phiên đăng nhập không hợp lệ hoặc không có quyền sinh viên.", AuthService.ERR_HE_THONG));
+        }
+        ApiResponse<List<SinhVienDeThiTrongLopDTO>> res = sinhVienThiService.layDeThiTrongLop(svId, lopId);
+        if (!res.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
         }
         return ResponseEntity.ok(res);
     }

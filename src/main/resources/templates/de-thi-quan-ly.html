@@ -126,6 +126,9 @@
         .btn-icon-restore { background: #f0fff4; color: #38a169; }
         .btn-icon-hard    { background: #fff5f5; color: #9b2c2c; }
         .btn-icon-question{ background: #faf5ff; color: #6b46c1; }
+        .btn-icon-publish { background: #e6fffa; color: #0d9488; }
+        .btn-icon-recall  { background: #fff5f5; color: #e53e3e; }
+        .btn-icon-link-share { background: #e0e7ff; color: #4338ca; }
         .btn-icon:hover { opacity: 0.8; transform: scale(1.05); }
 
         /* ===== TABS ===== */
@@ -564,6 +567,117 @@
                 <button class="btn btn-sm" style="background:#9b2c2c;color:#fff;" id="btnXacNhanXoaHan" onclick="xacNhanXoaHan()">
                     <i class="fas fa-times-circle"></i> Xóa Hẳn
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: XUẤT BẢN ĐỀ VÀO LỚP ===== -->
+    <div class="modal-overlay" id="modalXuatBan">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-bullhorn" style="color:#0d9488;margin-right:8px;"></i>Xuất bản đề thi</h3>
+                <button type="button" class="modal-close" onclick="dongModal('modalXuatBan')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin:0 0 14px;font-size:0.88rem;color:#718096;line-height:1.45;">
+                    Chỉ đề <strong>Công khai</strong> có câu hỏi mới xuất bản được. Sinh viên trong lớp chọn sẽ thấy đề tại <strong>Lớp/Phòng Thi</strong>.
+                </p>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Lớp học</label>
+                    <select class="form-control" id="selectLopXuatBan">
+                        <option value="">— Đang tải danh sách lớp —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="dongModal('modalXuatBan')">Hủy</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnXacNhanXuatBan" onclick="xacNhanXuatBanDeThi()">
+                    <i class="fas fa-check"></i> Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: THU HỒI XUẤT BẢN ===== -->
+    <div class="modal-overlay" id="modalThuHoi">
+        <div class="modal" style="max-width:560px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-undo" style="color:#e53e3e;margin-right:8px;"></i>Thu hồi đề thi</h3>
+                <button type="button" class="modal-close" onclick="dongModal('modalThuHoi')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin:0 0 16px;font-size:0.88rem;color:#718096;line-height:1.5;">
+                    Đề sẽ bị <strong>gỡ khỏi danh sách đề thi trong lớp</strong>. Sinh viên trong lớp sẽ không còn thấy đề này.
+                    <br><em style="color:#a0aec0;">Sinh viên đang làm dở vẫn tiếp tục làm được.</em>
+                </p>
+                <div id="danhSachLopDaXuatBan" style="max-height:320px;overflow-y:auto;">
+                    <div style="text-align:center;color:#a0aec0;padding:1.5rem;">Đang tải…</div>
+                </div>
+                <div id="thuHoiEmpty" style="display:none;text-align:center;color:#a0aec0;padding:1.5rem;">
+                    Đề thi chưa được xuất bản cho lớp nào.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="dongModal('modalThuHoi')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: XÁC NHẬN THU HỒI 1 LỚP ===== -->
+    <div class="modal-overlay" id="modalConfirmThuHoi">
+        <div class="modal" style="max-width:420px;">
+            <div class="modal-body" style="padding:28px 24px;text-align:center;">
+                <div class="confirm-icon" style="font-size:2.5rem;">⚠️</div>
+                <div class="confirm-msg" style="margin-top:12px;">
+                    Thu hồi đề khỏi lớp <strong id="confirmThuHoiTenLop"></strong>?
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="dongModal('modalConfirmThuHoi')">Hủy</button>
+                <button type="button" class="btn btn-sm" id="btnXacNhanThuHoi" style="background:#e53e3e;color:#fff;" onclick="thucHienThuHoi()">
+                    <i class="fas fa-undo"></i> Thu hồi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: LINK THAM GIA CÔNG KHAI (khác xuất bản lớp) ===== -->
+    <div class="modal-overlay" id="modalLinkThamGia">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-link" style="color:#4338ca;margin-right:8px;"></i>Xuất link tham gia</h3>
+                <button type="button" class="modal-close" onclick="dongModal('modalLinkThamGia')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin:0 0 14px;font-size:0.88rem;color:#718096;line-height:1.5;">
+                    <strong>Khác với &quot;Xuất bản vào lớp&quot;:</strong> bất kỳ ai có link đều có thể mở trang công khai,
+                    đăng nhập bằng <strong>tài khoản sinh viên</strong> và làm bài (không cần vào lớp cụ thể).
+                </p>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Link đầy đủ</label>
+                    <input type="text" class="form-control" id="inputLinkThamGiaFull" readonly placeholder="Chưa có link — nhấn &quot;Tạo link&quot; bên dưới"
+                           style="font-size:0.82rem;">
+                </div>
+                <p id="linkThamGiaTrangThai" style="font-size:0.8rem;color:#a0aec0;margin:0 0 12px;"></p>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                    <button type="button" class="btn btn-primary btn-sm" id="btnTaoLinkThamGia" onclick="thucHienTaoLinkThamGia(false)">
+                        <i class="fas fa-plus"></i> Tạo link
+                    </button>
+                    <button type="button" class="btn btn-sm" style="background:#eef2ff;color:#4338fa;border:1.5px solid #c7d2fe;"
+                            id="btnSinhMaLinkMoi" onclick="xacNhanSinhMaLinkMoi()">
+                        <i class="fas fa-sync-alt"></i> Sinh mã mới
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnSaoChepLinkThamGia" onclick="saoChepLinkThamGia()">
+                        <i class="fas fa-copy"></i> Sao chép
+                    </button>
+                    <button type="button" class="btn btn-sm" style="background:#fff5f5;color:#e53e3e;border:1.5px solid #feb2b2;"
+                            id="btnThuHoiLinkThamGia" onclick="thuHoiLinkThamGia()">
+                        <i class="fas fa-unlink"></i> Thu hồi link
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="dongModal('modalLinkThamGia')">Đóng</button>
             </div>
         </div>
     </div>

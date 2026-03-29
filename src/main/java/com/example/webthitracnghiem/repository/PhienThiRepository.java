@@ -1,6 +1,7 @@
 package com.example.webthitracnghiem.repository;
 
 import com.example.webthitracnghiem.model.DeThi;
+import com.example.webthitracnghiem.model.LopHoc;
 import com.example.webthitracnghiem.model.NguoiDung;
 import com.example.webthitracnghiem.model.PhienThi;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -83,4 +84,18 @@ public interface PhienThiRepository extends JpaRepository<PhienThi, String> {
      */
     @Query("SELECT p.nguoiDung.id, COUNT(p) FROM PhienThi p WHERE p.deThi.nguoiDung.id = :giaoVienId AND p.deThi.deletedAt IS NULL GROUP BY p.nguoiDung.id")
     List<Object[]> demSoPhienThiTheoSinhVienCuaGiaoVien(@Param("giaoVienId") String giaoVienId);
+
+    Optional<PhienThi> findByIdAndNguoiDung(String id, NguoiDung nguoiDung);
+
+    /**
+     * Đếm số phiên thi của một đề + lớp (bất kể trạng thái nộp hay chưa).
+     * Dùng để cảnh báo khi thu hồi: có bao nhiêu SV đã mở bài.
+     */
+    long countByDeThiAndLopHoc(DeThi deThi, LopHoc lopHoc);
+
+    /** Phiên ẩn danh đang dở (cùng đề + cùng họ tên đã chuẩn hóa). */
+    Optional<PhienThi> findByDeThiAndNguoiDungIsNullAndHoTenAnDanhAndThoiGianBatDauIsNotNullAndThoiGianNopIsNull(
+            DeThi deThi, String hoTenAnDanh);
+
+    long countByDeThiAndNguoiDungIsNullAndHoTenAnDanhAndThoiGianNopIsNotNull(DeThi deThi, String hoTenAnDanh);
 }

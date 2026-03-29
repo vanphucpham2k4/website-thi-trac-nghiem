@@ -34,6 +34,12 @@ public class DeThiListItemDTO {
     /** true nếu đề thi đã bị xóa mềm */
     private boolean daBiXoa;
 
+    /** true nếu đề đã được xuất bản cho ít nhất 1 lớp */
+    private boolean daXuatBan;
+
+    /** true nếu đã có link tham gia công khai (mã truy cập) */
+    private boolean coLinkThamGia;
+
     private LocalDateTime deletedAt;
     private LocalDateTime thoiGianTao;
 
@@ -84,6 +90,12 @@ public class DeThiListItemDTO {
 
     public boolean isDaBiXoa() { return daBiXoa; }
     public void setDaBiXoa(boolean daBiXoa) { this.daBiXoa = daBiXoa; }
+
+    public boolean isDaXuatBan() { return daXuatBan; }
+    public void setDaXuatBan(boolean daXuatBan) { this.daXuatBan = daXuatBan; }
+
+    public boolean isCoLinkThamGia() { return coLinkThamGia; }
+    public void setCoLinkThamGia(boolean coLinkThamGia) { this.coLinkThamGia = coLinkThamGia; }
 
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }

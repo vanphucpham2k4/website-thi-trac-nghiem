@@ -33,6 +33,8 @@ public class AuthService {
     public static final String ROLE_ADMIN = "ADMIN";
     public static final String ROLE_GIAO_VIEN = "GIAO_VIEN";
     public static final String ROLE_SINH_VIEN = "SINH_VIEN";
+    /** JWT phiên làm bài ẩn danh qua link /thi-mo (subject = phienThiId). */
+    public static final String ROLE_THI_AN_DANH = "THI_AN_DANH";
 
     // ===== CÁC BEAN DEPENDENCY INJECTION =====
     // Các Repository để tương tác với database

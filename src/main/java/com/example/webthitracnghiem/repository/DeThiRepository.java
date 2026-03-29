@@ -86,4 +86,10 @@ public interface DeThiRepository extends JpaRepository<DeThi, String> {
      */
     @Query("SELECT d FROM DeThi d WHERE d.id = :id AND d.deletedAt IS NULL")
     java.util.Optional<DeThi> findByIdAndNotDeleted(@Param("id") String id);
+
+    /**
+     * Tìm đề theo mã link công khai (chưa xóa mềm).
+     */
+    @Query("SELECT d FROM DeThi d WHERE d.maTruyCap = :ma AND d.deletedAt IS NULL")
+    java.util.Optional<DeThi> findByMaTruyCapAndDeletedAtIsNull(@Param("ma") String maTruyCap);
 }
