@@ -1,5 +1,6 @@
 /**
- * Trang làm bài thi (sinh viên): đếm ngược, lưới câu, lưu có debounce + lưu tay, nộp bài.
+ * Trang làm bài thi (sinh viên): một cột cuộn dọc — toàn bộ câu trên một trang (không lật từng câu).
+ * Đếm ngược, lưới câu (bấm để cuộn tới câu), lưu debounce + lưu tay, nộp bài.
  * Chế độ ẩn danh (/thi-mo/lam-bai): JWT riêng trong sessionStorage (lamBaiToken).
  */
 const thiAnDanh = document.body?.dataset?.thiAnDanh === 'true';
@@ -19,6 +20,11 @@ let luuTimer = null;
 let chuaLuu = false;
 let dongHoTimer = null;
 let hetHan = false;
+/** Đã từng có > 10 phút còn lại (tránh banner “10 phút” với đề ngắn). */
+let secLonNhatQuanSat = 0;
+let daThongBao10Phut = false;
+let daKichHoatTuDongNop = false;
+let dangNopBai = false;
 
 function getToken() {
     if (thiAnDanh) return sessionStorage.getItem('lamBaiToken');
@@ -88,6 +94,23 @@ function parseHetHanMs() {
     return Number.isNaN(d) ? null : d;
 }
 
+function hienThiCanhBao10Phut() {
+    const bar = document.getElementById('canhBao10Phut');
+    if (!bar) return;
+    bar.hidden = false;
+}
+
+function anCanhBao10Phut() {
+    const bar = document.getElementById('canhBao10Phut');
+    if (!bar) return;
+    bar.hidden = true;
+}
+
+function khoaTuongTacKhiNop(khoa) {
+    document.body.classList.toggle('lam-bai-dang-nop', khoa);
+    document.getElementById('khoiNoiDungCau')?.classList.toggle('lam-bai-khoa', khoa);
+}
+
 function capNhatDongHo() {
     const el = document.getElementById('dongHoConLai');
     if (!el) return;
@@ -102,7 +125,20 @@ function capNhatDongHo() {
         hetHan = true;
         el.classList.add('het-gio');
         el.textContent = '00:00';
+        if (!daKichHoatTuDongNop) {
+            daKichHoatTuDongNop = true;
+            if (dongHoTimer) {
+                clearInterval(dongHoTimer);
+                dongHoTimer = null;
+            }
+            void thucHienNopBai({ tuDongHetGio: true });
+        }
         return;
+    }
+    if (sec > secLonNhatQuanSat) secLonNhatQuanSat = sec;
+    if (!daThongBao10Phut && sec <= 600 && secLonNhatQuanSat > 600) {
+        daThongBao10Phut = true;
+        hienThiCanhBao10Phut();
     }
     el.classList.remove('het-gio');
     if (sec <= 300) el.classList.add('canh-bao');
@@ -139,111 +175,138 @@ function veLuoiCau() {
     });
 }
 
-function chonChiSo(i) {
-    const list = cauDaSapXep();
-    if (i < 0 || i >= list.length) return;
-    chiSoCau = i;
-    veLuoiCau();
-    veCauHienTai();
+function tenNhomRadioCau(cauId) {
+    return `tl_${cauId}`;
 }
 
-function veCauHienTai() {
-    const khoi = document.getElementById('khoiNoiDungCau');
-    if (!khoi || !baiThi) return;
-    const list = cauDaSapXep();
-    const c = list[chiSoCau];
-    if (!c) {
-        khoi.innerHTML = '<p>Không có câu hỏi.</p>';
-        return;
-    }
-    const daChon = traLoi[c.id] || '';
+/** HTML phần lựa chọn cho một câu (mỗi câu một nhóm radio). */
+function htmlPhanLuaChonMotCau(c, daChon) {
     const loai = c.loaiCauHoi || 'TRAC_NGHIEM';
-    const dangXemLai = danhDauXemLai.has(c.id);
-
-    let phanLuaChon = '';
+    const name = tenNhomRadioCau(c.id);
     if (loai === 'DUNG_SAI') {
         const opts = [
             { v: 'DUNG', t: 'Đúng' },
             { v: 'SAI', t: 'Sai' }
         ];
-        phanLuaChon = opts
+        return opts
             .map(
                 (o) => `
             <label class="lua-chon-item ${daChon === o.v ? 'chon' : ''}">
-                <input type="radio" name="tl" value="${o.v}" ${daChon === o.v ? 'checked' : ''}>
+                <input type="radio" name="${name}" value="${o.v}" ${daChon === o.v ? 'checked' : ''}>
                 ${escHtml(o.t)}
             </label>`
             )
             .join('');
-    } else {
-        const labels = [
-            ['A', c.luaChonA],
-            ['B', c.luaChonB],
-            ['C', c.luaChonC],
-            ['D', c.luaChonD]
-        ];
-        phanLuaChon = labels
-            .filter((x) => x[1] != null && String(x[1]).trim() !== '')
-            .map(
-                ([ch, text]) => `
+    }
+    const labels = [
+        ['A', c.luaChonA],
+        ['B', c.luaChonB],
+        ['C', c.luaChonC],
+        ['D', c.luaChonD]
+    ];
+    return labels
+        .filter((x) => x[1] != null && String(x[1]).trim() !== '')
+        .map(
+            ([ch, text]) => `
             <label class="lua-chon-item ${daChon === ch ? 'chon' : ''}">
-                <input type="radio" name="tl" value="${ch}" ${daChon === ch ? 'checked' : ''}>
+                <input type="radio" name="${name}" value="${ch}" ${daChon === ch ? 'checked' : ''}>
                 <strong>${ch}.</strong> ${escHtml(text)}
             </label>`
-            )
-            .join('');
-    }
+        )
+        .join('');
+}
 
-    khoi.innerHTML = `
-        <div class="cau-head">
-            <span class="stt">Câu hỏi ${c.thuTu || chiSoCau + 1}</span>
-            <button type="button" class="btn-danh-dau ${dangXemLai ? 'active' : ''}" id="btnDanhDau"><i class="fas fa-flag"></i> Đánh dấu xem lại</button>
-        </div>
-        <div class="noi-dung-cau">${escHtml(c.noiDung || '')}</div>
-        <div id="hopLuaChon">${phanLuaChon}</div>
-        <div class="dieu-huong-cau">
-            ${chiSoCau > 0 ? `<a href="#" class="link-cau" id="lnkCauTruoc">← Câu trước</a>` : '<span></span>'}
-            <div style="display:flex;gap:10px;align-items:center;">
-                <button type="button" class="btn-bo-chon" id="btnBoChon">Bỏ chọn</button>
-                ${
-                    chiSoCau < list.length - 1
-                        ? '<button type="button" class="btn-cau-sau" id="lnkCauSau">Câu sau →</button>'
-                        : '<span style="color:#718096;font-size:0.85rem;">Câu cuối</span>'
-                }
+function chonChiSo(i, options) {
+    const list = cauDaSapXep();
+    if (i < 0 || i >= list.length) return;
+    chiSoCau = i;
+    veLuoiCau();
+    if (options?.scroll !== false) {
+        const el = document.getElementById(`cau-${list[i].id}`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+/** Một trang: toàn bộ câu xếp dọc, cuộn trong khối nội dung. */
+function veTatCaCau() {
+    const khoi = document.getElementById('khoiNoiDungCau');
+    if (!khoi || !baiThi) return;
+    const list = cauDaSapXep();
+    if (!list.length) {
+        khoi.innerHTML = '<p>Không có câu hỏi.</p>';
+        return;
+    }
+    khoi.innerHTML = list
+        .map((c, idx) => {
+            const daChon = traLoi[c.id] || '';
+            const dangXemLai = danhDauXemLai.has(c.id);
+            const phanLuaChon = htmlPhanLuaChonMotCau(c, daChon);
+            const idSafe = escHtml(c.id);
+            return `
+        <article class="khoi-cau" id="cau-${c.id}" data-idx="${idx}">
+            <div class="cau-head">
+                <span class="stt">Câu hỏi ${c.thuTu || idx + 1}</span>
+                <button type="button" class="btn-danh-dau ${dangXemLai ? 'active' : ''}" data-act="danh-dau" data-cau-id="${idSafe}"><i class="fas fa-flag"></i> Đánh dấu xem lại</button>
             </div>
-        </div>
-    `;
+            <div class="noi-dung-cau">${escHtml(c.noiDung || '')}</div>
+            <div class="hop-lua-chon">${phanLuaChon}</div>
+            <div class="hang-tac-vu-cau">
+                <button type="button" class="btn-bo-chon" data-act="bo-chon" data-cau-id="${idSafe}">Bỏ chọn</button>
+            </div>
+        </article>`;
+        })
+        .join('');
+}
 
-    const hop = document.getElementById('hopLuaChon');
-    if (hop) {
-        hop.querySelectorAll('input[name="tl"]').forEach((inp) => {
-            inp.addEventListener('change', () => {
-                traLoi[c.id] = inp.value;
-                chuaLuu = true;
-                veLuoiCau();
-                luuCoDebounce();
-            });
-        });
-    }
-    document.getElementById('btnDanhDau')?.addEventListener('click', () => {
-        if (danhDauXemLai.has(c.id)) danhDauXemLai.delete(c.id);
-        else danhDauXemLai.add(c.id);
-        luuXemLai();
-        veLuoiCau();
-        veCauHienTai();
-    });
-    document.getElementById('btnBoChon')?.addEventListener('click', () => {
-        delete traLoi[c.id];
+function ganSuKienNoiDungCau() {
+    const khoi = document.getElementById('khoiNoiDungCau');
+    if (!khoi || khoi.dataset.delegationBound === '1') return;
+    khoi.dataset.delegationBound = '1';
+
+    khoi.addEventListener('change', (e) => {
+        const t = e.target;
+        if (!(t instanceof HTMLInputElement) || t.type !== 'radio' || !t.name.startsWith('tl_')) return;
+        const cauId = t.name.slice(3);
+        if (!cauId) return;
+        traLoi[cauId] = t.value;
         chuaLuu = true;
+        const lab = t.closest('.lua-chon-item');
+        if (lab) {
+            lab.parentElement?.querySelectorAll('.lua-chon-item').forEach((x) => x.classList.remove('chon'));
+            lab.classList.add('chon');
+        }
         veLuoiCau();
-        veCauHienTai();
         luuCoDebounce();
     });
-    document.getElementById('lnkCauTruoc')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        chonChiSo(chiSoCau - 1);
+
+    khoi.addEventListener('click', (e) => {
+        const danhDau = e.target.closest('[data-act="danh-dau"]');
+        if (danhDau) {
+            const cid = danhDau.getAttribute('data-cau-id');
+            if (!cid) return;
+            if (danhDauXemLai.has(cid)) danhDauXemLai.delete(cid);
+            else danhDauXemLai.add(cid);
+            danhDau.classList.toggle('active', danhDauXemLai.has(cid));
+            luuXemLai();
+            veLuoiCau();
+            return;
+        }
+        const boChon = e.target.closest('[data-act="bo-chon"]');
+        if (boChon) {
+            const cid = boChon.getAttribute('data-cau-id');
+            if (!cid) return;
+            delete traLoi[cid];
+            chuaLuu = true;
+            const nhom = tenNhomRadioCau(cid);
+            khoi.querySelectorAll('input[type="radio"]').forEach((inp) => {
+                if (inp.name !== nhom) return;
+                inp.checked = false;
+                inp.closest('.lua-chon-item')?.classList.remove('chon');
+            });
+            veLuoiCau();
+            luuCoDebounce();
+        }
     });
-    document.getElementById('lnkCauSau')?.addEventListener('click', () => chonChiSo(chiSoCau + 1));
 }
 
 function taoBodyLuu() {
@@ -306,12 +369,24 @@ function dongModalNop() {
     document.getElementById('modalNopBai')?.classList.remove('active');
 }
 
-async function xacNhanNopBai() {
+/**
+ * Lưu đáp án lên server rồi nộp bài (body nộp gồm traLoi để hết giờ vẫn ghi được bản cuối).
+ * @param {{ tuDongHetGio?: boolean }} options
+ */
+async function thucHienNopBai(options) {
+    if (!phienThiId || dangNopBai) return;
+    dangNopBai = true;
+    khoaTuongTacKhiNop(true);
+    dongModalNop();
+
+    const tuDong = Boolean(options?.tuDongHetGio);
     await luuLenMayChu(true);
+
     try {
         const res = await fetch(`${API_PHIEN(phienThiId)}/nop-bai`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' }
+            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(taoBodyLuu())
         });
         const json = await res.json();
         if (res.status === 401) {
@@ -320,7 +395,14 @@ async function xacNhanNopBai() {
             return;
         }
         if (!json.success) {
-            alert(json.message || 'Không nộp được bài.');
+            const msg = json.message || 'Không nộp được bài.';
+            if (tuDong) {
+                alert(`Hết giờ làm bài nhưng chưa nộp được: ${msg} Vui lòng bấm Nộp bài thi để thử lại.`);
+            } else {
+                alert(msg);
+            }
+            dangNopBai = false;
+            khoaTuongTacKhiNop(false);
             return;
         }
         window.location.href = thiAnDanh
@@ -328,8 +410,18 @@ async function xacNhanNopBai() {
             : `/dashboard/sinh-vien/ket-qua/${encodeURIComponent(phienThiId)}`;
     } catch (e) {
         console.error(e);
-        alert('Lỗi kết nối khi nộp bài.');
+        if (tuDong) {
+            alert('Hết giờ làm bài nhưng lỗi kết nối khi nộp. Vui lòng bấm Nộp bài thi để thử lại.');
+        } else {
+            alert('Lỗi kết nối khi nộp bài.');
+        }
+        dangNopBai = false;
+        khoaTuongTacKhiNop(false);
     }
+}
+
+async function xacNhanNopBai() {
+    await thucHienNopBai({ tuDongHetGio: false });
 }
 
 async function taiNoiDung() {
@@ -367,15 +459,26 @@ async function taiNoiDung() {
     document.getElementById('headerTenDe').textContent =
         `${baiThi.tenDeThi || 'Đề thi'}${ma ? ` (${ma})` : ''}${tenMon ? ` — ${tenMon}` : ''}`;
 
+    secLonNhatQuanSat = 0;
+    daThongBao10Phut = false;
+    daKichHoatTuDongNop = false;
+    dangNopBai = false;
+    hetHan = false;
+    anCanhBao10Phut();
+    khoaTuongTacKhiNop(false);
+
     capNhatDongHo();
     if (dongHoTimer) clearInterval(dongHoTimer);
     dongHoTimer = setInterval(capNhatDongHo, 1000);
 
+    veTatCaCau();
+    chiSoCau = 0;
     veLuoiCau();
-    chonChiSo(0);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    ganSuKienNoiDungCau();
+
     if (thiAnDanh) {
         if (!getToken() || isTokenExpired()) {
             redirectVeThiMoNeuCoMa();
@@ -409,6 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnHuyNop')?.addEventListener('click', dongModalNop);
     document.getElementById('btnXacNhanNop')?.addEventListener('click', xacNhanNopBai);
     document.getElementById('btnLuuNgay')?.addEventListener('click', () => luuLenMayChu(true));
+    document.getElementById('btnDongCanhBao10Phut')?.addEventListener('click', anCanhBao10Phut);
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden' && chuaLuu) luuLenMayChu(false);

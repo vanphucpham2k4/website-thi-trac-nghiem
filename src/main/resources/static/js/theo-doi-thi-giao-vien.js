@@ -63,10 +63,16 @@ function renderBang(data) {
     const tbody = document.getElementById('trackingTableBody');
     const list = (data && Array.isArray(data.danhSach)) ? data.danhSach : [];
     if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">Không có dữ liệu phù hợp.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">Không có dữ liệu phù hợp.</td></tr>';
         return;
     }
-    tbody.innerHTML = list.map((item) => `
+    tbody.innerHTML = list
+        .map((item) => {
+            const pid = item.phienThiId;
+            const nutBaiThi = pid
+                ? `<a class="btn btn-primary btn-sm" style="white-space:nowrap;" href="/dashboard/giao-vien/theo-doi-thi/xem-bai/${encodeURIComponent(pid)}"><i class="fas fa-external-link-alt"></i> Vào bài</a>`
+                : '<span style="color:#a0aec0;font-size:0.85rem;">—</span>';
+            return `
         <tr>
             <td>${item.maNguoiDung || ''}</td>
             <td>${item.hoTen || ''}</td>
@@ -74,8 +80,10 @@ function renderBang(data) {
             <td>${layBadge(item.nhomTrangThai)}</td>
             <td>${item.thoiGianBatDau || '-'}</td>
             <td>${item.thoiGianNop || '-'}</td>
-        </tr>
-    `).join('');
+            <td>${nutBaiThi}</td>
+        </tr>`;
+        })
+        .join('');
 }
 
 async function taiDanhSachTheoDoi(token, deThiId) {

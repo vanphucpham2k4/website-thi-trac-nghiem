@@ -142,6 +142,16 @@ public class DashboardController {
     }
 
     /**
+     * Giáo viên xem bài làm của sinh viên (theo phiên thi).
+     * URL: GET /dashboard/giao-vien/theo-doi-thi/xem-bai/{phienThiId}
+     */
+    @GetMapping("/giao-vien/theo-doi-thi/xem-bai/{phienThiId}")
+    public String trangGiaoVienXemBaiSinhVien(@PathVariable String phienThiId, Model model) {
+        model.addAttribute("phienThiId", phienThiId);
+        return "giao-vien-xem-bai-thi-sv";
+    }
+
+    /**
      * Trang quản lý hồ sơ cá nhân giáo viên
      * URL: GET /dashboard/giao-vien/ho-so
      */
