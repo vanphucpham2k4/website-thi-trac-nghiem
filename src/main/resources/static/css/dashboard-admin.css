@@ -544,3 +544,173 @@
     background: rgba(237, 137, 54, 0.12);
     color: #dd6b20;
 }
+
+/* ============================================
+   9. ADMIN PROFILE PAGE
+   ============================================ */
+.admin-profile-card .card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-profile-layout {
+    display: flex;
+    gap: 28px;
+    padding: 8px 4px;
+    flex-wrap: wrap;
+}
+
+/* Sidebar (avatar + quick info) */
+.admin-profile-sidebar {
+    flex: 0 0 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.admin-profile-avatar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 24px 20px;
+    background: linear-gradient(135deg, rgba(237, 137, 54, 0.08), rgba(102, 126, 234, 0.05));
+    border: 1px solid rgba(237, 137, 54, 0.2);
+    border-radius: 14px;
+}
+
+.admin-profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ed8936, #dd6b20);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(237, 137, 54, 0.35);
+}
+
+.admin-profile-role-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 16px;
+    background: rgba(237, 137, 54, 0.15);
+    border: 1px solid rgba(237, 137, 54, 0.35);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #dd6b20;
+}
+
+.admin-profile-info-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 18px;
+    background: #f7fafc;
+    border-radius: 12px;
+    border: 1px solid #edf2f7;
+}
+
+.profile-info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #4a5568;
+}
+
+.profile-info-row i {
+    color: #ed8936;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.profile-info-row span {
+    word-break: break-all;
+    font-weight: 500;
+}
+
+/* Form area */
+.admin-profile-form-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-profile-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid #e2e8f0;
+}
+
+.admin-profile-section-title i {
+    color: #667eea;
+}
+
+.admin-profile-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+}
+
+/* Password form */
+.admin-pw-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px 24px;
+    padding: 4px 0;
+}
+
+.admin-pw-input-wrap {
+    position: relative;
+}
+
+.admin-pw-input-wrap input {
+    width: 100%;
+    padding-right: 40px;
+}
+
+.admin-pw-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #a0aec0;
+    font-size: 0.9rem;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.admin-pw-toggle:hover {
+    color: #ed8936;
+}
+
+@media (max-width: 900px) {
+    .admin-profile-layout {
+        flex-direction: column;
+    }
+    .admin-profile-sidebar {
+        flex: none;
+        width: 100%;
+    }
+    .admin-profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .admin-pw-form {
+        grid-template-columns: 1fr;
+    }
+}

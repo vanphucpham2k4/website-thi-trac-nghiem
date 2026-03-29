@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pageMonHoc) pageMonHoc.style.display = 'none';
         if (pageQuanLyDeThi) pageQuanLyDeThi.style.display = 'none';
         if (pageQuanLyCauHoi) pageQuanLyCauHoi.style.display = 'none';
+        if (document.getElementById('pageHoSo')) document.getElementById('pageHoSo').style.display = 'none';
     }
 
     function showPage(page) {
@@ -107,6 +108,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (pageQuanLyCauHoi) pageQuanLyCauHoi.style.display = '';
             if (mainPageTitle) mainPageTitle.textContent = 'Quản Lý Câu Hỏi';
             loadAdminGiaoVienCauHoi();
+            return;
+        }
+        if (page === 'ho-so') {
+            hideAllMainPages();
+            const pageHoSo = document.getElementById('pageHoSo');
+            if (pageHoSo) pageHoSo.style.display = '';
+            if (mainPageTitle) mainPageTitle.textContent = 'Hồ Sơ Cá Nhân';
+            loadAdminHoSo();
             return;
         }
         // Fallback — unknown page, do nothing
@@ -189,7 +198,9 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '<td><div class="admin-action-btns">';
             html += '<button type="button" class="btn btn-sm btn-primary btn-edit-user" data-id="' + u.id + '"><i class="fas fa-edit"></i> Sửa</button>';
             html += '<button type="button" class="btn btn-sm btn-outline btn-pw-user" data-id="' + u.id + '"><i class="fas fa-key"></i> Mật khẩu</button>';
-            html += '<button type="button" class="btn btn-sm btn-outline btn-del-user" data-id="' + u.id + '" style="color:#e53e3e;border-color:#feb2b2;"><i class="fas fa-trash"></i> Xóa</button>';
+            if (u.maNguoiDung !== 'ADMIN001') {
+                html += '<button type="button" class="btn btn-sm btn-outline btn-del-user" data-id="' + u.id + '" style="color:#e53e3e;border-color:#feb2b2;"><i class="fas fa-trash"></i> Xóa</button>';
+            }
             html += '</div></td></tr>';
         });
         tbody.innerHTML = html;
@@ -1395,4 +1406,151 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch(e) { console.error(e); alert('Lỗi kết nối'); }
     }
 
+    // ====== 10. ADMIN HỒ SƠ CÁ NHÂN ======
+    function showProfileMsg(msgEl, success, text) {
+        if (!msgEl) return;
+        msgEl.hidden = false;
+        msgEl.className = 'admin-inline-msg ' + (success ? 'ok' : 'error');
+        msgEl.textContent = text;
+    }
+
+    async function loadAdminHoSo() {
+        const msg = document.getElementById('adminHoSoMsg');
+        if (msg) { msg.hidden = true; msg.textContent = ''; }
+        try {
+            const res = await fetch('/api/admin/ho-so', { headers: authHeadersJson() });
+            if (res.status === 401) { window.location.href = '/login/admin?expired=1'; return; }
+            const json = await res.json();
+            if (!json.success) {
+                if (msg) showProfileMsg(msg, false, json.message || 'Không tải được hồ sơ.');
+                return;
+            }
+            const d = json.data;
+            if (document.getElementById('profileMaNguoiDung')) document.getElementById('profileMaNguoiDung').textContent = d.maNguoiDung || '—';
+            if (document.getElementById('profileEmail')) document.getElementById('profileEmail').textContent = d.email || '—';
+            if (document.getElementById('profileSdt')) document.getElementById('profileSdt').textContent = d.soDienThoai || '—';
+            if (document.getElementById('profileHo')) document.getElementById('profileHo').value = d.ho || '';
+            if (document.getElementById('profileTen')) document.getElementById('profileTen').value = d.ten || '';
+            if (document.getElementById('profileEmailInput')) document.getElementById('profileEmailInput').value = d.email || '';
+            if (document.getElementById('profileSdtInput')) document.getElementById('profileSdtInput').value = d.soDienThoai || '';
+        } catch (e) {
+            console.error(e);
+            if (msg) showProfileMsg(msg, false, 'Lỗi kết nối.');
+        }
+    }
+
+    document.getElementById('btnSaveProfile') && document.getElementById('btnSaveProfile').addEventListener('click', async function () {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+
+        const ho = document.getElementById('profileHo').value.trim();
+        const ten = document.getElementById('profileTen').value.trim();
+        const email = document.getElementById('profileEmailInput').value.trim();
+        const sdt = document.getElementById('profileSdtInput').value.trim();
+
+        if (!ho || !ten || !email || !sdt) {
+            showProfileMsg(document.getElementById('adminHoSoMsg'), false, 'Vui lòng nhập đầy đủ họ, tên, email và số điện thoại.');
+            btn.disabled = false; btn.innerHTML = originalText;
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/admin/ho-so', {
+                method: 'PUT',
+                headers: authHeadersJson(),
+                body: JSON.stringify({ ho: ho, ten: ten, email: email, soDienThoai: sdt })
+            });
+            const json = await res.json();
+            if (res.status === 401) { window.location.href = '/login/admin?expired=1'; return; }
+            if (!json.success) {
+                showProfileMsg(document.getElementById('adminHoSoMsg'), false, json.message || 'Cập nhật thất bại.');
+            } else {
+                showProfileMsg(document.getElementById('adminHoSoMsg'), true, 'Cập nhật hồ sơ thành công!');
+                if (document.getElementById('displayName')) {
+                    document.getElementById('displayName').textContent = json.data.hoTen || (ho + ' ' + ten);
+                }
+                if (document.getElementById('profileEmail')) document.getElementById('profileEmail').textContent = email;
+                if (document.getElementById('profileSdt')) document.getElementById('profileSdt').textContent = sdt;
+                try {
+                    const storedUser = JSON.parse(storage.getItem('nguoiDung') || '{}');
+                    storedUser.ho = json.data.ho;
+                    storedUser.ten = json.data.ten;
+                    storedUser.hoTen = json.data.hoTen;
+                    storage.setItem('nguoiDung', JSON.stringify(storedUser));
+                } catch (e) {}
+            }
+        } catch (e) {
+            console.error(e);
+            showProfileMsg(document.getElementById('adminHoSoMsg'), false, 'Lỗi kết nối.');
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+
+    document.getElementById('btnSavePassword') && document.getElementById('btnSavePassword').addEventListener('click', async function () {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+
+        const mkCu = document.getElementById('profileMkCu').value;
+        const mkMoi = document.getElementById('profileMkMoi').value;
+        const mkMoiLai = document.getElementById('profileMkMoiLai').value;
+        const msg = document.getElementById('adminDoiMkMsg');
+
+        if (!mkCu || !mkMoi || !mkMoiLai) {
+            showProfileMsg(msg, false, 'Vui lòng nhập đầy đủ tất cả các trường mật khẩu.');
+            btn.disabled = false; btn.innerHTML = originalText;
+            return;
+        }
+        if (mkMoi.length < 6) {
+            showProfileMsg(msg, false, 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+            btn.disabled = false; btn.innerHTML = originalText;
+            return;
+        }
+        if (mkMoi !== mkMoiLai) {
+            showProfileMsg(msg, false, 'Mật khẩu mới không khớp. Vui lòng nhập lại.');
+            btn.disabled = false; btn.innerHTML = originalText;
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/admin/ho-so/doi-mat-khau', {
+                method: 'POST',
+                headers: authHeadersJson(),
+                body: JSON.stringify({ matKhauCu: mkCu, matKhauMoi: mkMoi })
+            });
+            const json = await res.json();
+            if (res.status === 401) { window.location.href = '/login/admin?expired=1'; return; }
+            if (!json.success) {
+                showProfileMsg(msg, false, json.message || 'Đổi mật khẩu thất bại.');
+            } else {
+                showProfileMsg(msg, true, 'Đổi mật khẩu thành công!');
+                document.getElementById('profileMkCu').value = '';
+                document.getElementById('profileMkMoi').value = '';
+                document.getElementById('profileMkMoiLai').value = '';
+            }
+        } catch (e) {
+            console.error(e);
+            showProfileMsg(msg, false, 'Lỗi kết nối.');
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+
+    window.togglePasswordField = function (fieldId, btn) {
+        const input = document.getElementById(fieldId);
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+            input.type = 'password';
+            btn.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+    };
+
 });
+
