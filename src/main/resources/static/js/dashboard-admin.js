@@ -132,6 +132,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ----- Xử lý hash URL khi load trang (VD: /admin#ho-so) -----
+    function handleInitialHash() {
+        const hash = window.location.hash;
+        if (hash === '#ho-so') {
+            // Set active cho menu Hồ sơ Cá Nhân trong sidebar
+            menuItems.forEach(mi => {
+                if (mi.getAttribute('data-page') === 'ho-so') {
+                    mi.classList.add('active');
+                } else {
+                    mi.classList.remove('active');
+                }
+            });
+            showPage('ho-so');
+        } else {
+            // Mặc định hiển thị dashboard
+            showPage('dashboard');
+        }
+    }
+    handleInitialHash();
+
     // ----- Quản lý người dùng (API admin) -----
     let usersCache = [];
     let editOriginalVaiTro = '';

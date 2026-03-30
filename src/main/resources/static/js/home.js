@@ -382,8 +382,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             profileLinkEl.href = '/dashboard/giao-vien/ho-so';
                         } else if (vaiTro === 'SINH_VIEN') {
                             profileLinkEl.href = '/dashboard/sinh-vien/ho-so';
+                        } else if (vaiTro === 'ADMIN') {
+                            profileLinkEl.href = '/admin#ho-so';
                         } else {
                             profileLinkEl.href = '#';
+                        }
+                    }
+
+                    // Ẩn "Lịch sử thi" đối với quản trị viên
+                    if (vaiTro === 'ADMIN') {
+                        const lichSuLink = document.getElementById('lichSuThiLink');
+                        if (lichSuLink) {
+                            lichSuLink.style.display = 'none';
                         }
                     }
                 }
