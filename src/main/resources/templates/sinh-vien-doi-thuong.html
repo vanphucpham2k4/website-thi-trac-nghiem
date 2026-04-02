@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đổi Thưởng - ThiTracNghiem</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/sinh-vien-doi-thuong.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a th:href="@{/}" class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>ThiTracNghiem</span>
+            </a>
+            <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Đóng menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <span class="menu-label">MENU CHÍNH</span>
+                <a th:href="@{/dashboard/sinh-vien}" class="menu-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang Chủ</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/lich-su-thi}" class="menu-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Lịch Sử Thi</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/phong-thi}" class="menu-item">
+                    <i class="fas fa-door-open"></i>
+                    <span>Lớp/Phòng Thi</span>
+                </a>
+                <a th:href="@{/dashboard/sinh-vien/doi-thuong}" class="menu-item active">
+                    <i class="fas fa-gift"></i>
+                    <span>Đổi Thưởng</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <span class="menu-label">TÀI KHOẢN</span>
+                <a th:href="@{/dashboard/sinh-vien/ho-so}" class="menu-item">
+                    <i class="fas fa-user"></i>
+                    <span>Hồ Sơ</span>
+                </a>
+                <a href="#" class="menu-item logout-btn" id="btnLogout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Đổi Thưởng</h1>
+            </div>
+
+            <div class="header-right">
+                <div class="user-info" id="userInfo">
+                    <div class="user-info-text">
+                        <span class="user-name">Xin chào, <strong id="displayName">—</strong></span>
+                        <span class="user-role-badge" id="displayRole">Sinh viên</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content dt-page">
+            <section class="dt-hero" aria-labelledby="dtHeroTitle">
+                <div class="dt-hero-text">
+                    <h2 id="dtHeroTitle">Đổi thưởng</h2>
+                    <p class="dt-sub">Sử dụng điểm tích lũy từ các bài thi để đổi những phần quà bạn mong muốn.</p>
+                </div>
+                <div class="dt-hero-stats">
+                    <div class="dt-stat-card">
+                        <div class="dt-stat-icon"><i class="fas fa-star"></i></div>
+                        <div>
+                            <div class="dt-stat-val" id="dtStatDiem">—</div>
+                            <div class="dt-stat-lbl">Điểm hiện có</div>
+                        </div>
+                    </div>
+                    <div class="dt-stat-card">
+                        <div class="dt-stat-icon"><i class="fas fa-gift"></i></div>
+                        <div>
+                            <div class="dt-stat-val" id="dtStatLuot">—</div>
+                            <div class="dt-stat-lbl">Tổng lượt đổi thành công</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="dt-section" aria-labelledby="dtRewardTitle">
+                <h2 class="dt-section-title" id="dtRewardTitle"><i class="fas fa-store"></i> Phần thưởng</h2>
+                <p class="dt-section-desc">Lọc theo loại, mức điểm hoặc trạng thái để tìm quà phù hợp.</p>
+
+                <div class="dt-filter-bar">
+                    <div class="dt-filter-field dt-search">
+                        <label for="dtFilterSearch">Tìm kiếm</label>
+                        <input type="search" id="dtFilterSearch" placeholder="Tìm phần thưởng..." autocomplete="off">
+                    </div>
+                    <div class="dt-filter-field">
+                        <label for="dtFilterLoai">Loại phần thưởng</label>
+                        <select id="dtFilterLoai">
+                            <option value="TAT_CA">Tất cả</option>
+                            <option value="HUY_HIEU">Huy hiệu</option>
+                            <option value="VAT_PHAM_HOC_TAP">Vật phẩm học tập</option>
+                            <option value="VOUCHER">Voucher</option>
+                            <option value="QUYEN_LOI_HE_THONG">Quyền lợi hệ thống</option>
+                        </select>
+                    </div>
+                    <div class="dt-filter-field">
+                        <label for="dtFilterMucDiem">Mức điểm</label>
+                        <select id="dtFilterMucDiem">
+                            <option value="TAT_CA">Tất cả</option>
+                            <option value="DUOI_200">Dưới 200</option>
+                            <option value="TU_200_DEN_500">200 – 500</option>
+                            <option value="TU_500_DEN_1000">500 – 1000</option>
+                            <option value="TREN_1000">Trên 1000</option>
+                        </select>
+                    </div>
+                    <div class="dt-filter-field">
+                        <label for="dtFilterCardTrangThai">Trạng thái</label>
+                        <select id="dtFilterCardTrangThai">
+                            <option value="TAT_CA">Tất cả</option>
+                            <option value="CO_THE_DOI">Có thể đổi</option>
+                            <option value="KHONG_DU_DIEM">Không đủ điểm</option>
+                            <option value="HET_HANG">Hết hàng</option>
+                        </select>
+                    </div>
+                    <div class="dt-filter-actions">
+                        <button type="button" class="dt-btn dt-btn-ghost" id="btnResetFiltersDt">
+                            <i class="fas fa-undo"></i> Reset bộ lọc
+                        </button>
+                    </div>
+                </div>
+
+                <div id="rewardGrid" class="dt-reward-grid" role="list"></div>
+                <div id="rewardEmpty" class="dt-empty" hidden>
+                    <i class="fas fa-filter"></i>
+                    Không có phần thưởng phù hợp bộ lọc. Thử đổi điều kiện hoặc reset bộ lọc.
+                </div>
+            </section>
+
+            <section class="dt-section dt-history" aria-labelledby="dtHistTitle">
+                <h2 class="dt-section-title" id="dtHistTitle"><i class="fas fa-history"></i> Lịch sử đổi thưởng</h2>
+                <p class="dt-section-desc">Theo dõi các phần thưởng bạn đã đổi và trạng thái xử lý.</p>
+
+                <div class="dt-history-filters">
+                    <div class="dt-filter-field dt-search">
+                        <label for="dtHistSearch">Tìm theo tên</label>
+                        <input type="search" id="dtHistSearch" placeholder="Tên phần thưởng..." autocomplete="off">
+                    </div>
+                    <div class="dt-filter-field">
+                        <label for="dtHistTrangThai">Trạng thái</label>
+                        <select id="dtHistTrangThai">
+                            <option value="TAT_CA">Tất cả</option>
+                            <option value="CHO_DUYET">Chờ duyệt</option>
+                            <option value="DA_DUYET">Đã duyệt</option>
+                            <option value="DA_NHAN_QUA">Đã nhận quà</option>
+                            <option value="DA_HUY">Đã hủy</option>
+                        </select>
+                    </div>
+                    <div class="dt-filter-field">
+                        <label for="dtHistKhoang">Thời gian</label>
+                        <select id="dtHistKhoang">
+                            <option value="TAT_CA">Tất cả</option>
+                            <option value="HOM_NAY">Hôm nay</option>
+                            <option value="7_NGAY">7 ngày qua</option>
+                            <option value="30_NGAY">30 ngày qua</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="dt-table-wrap">
+                    <table class="dt-table">
+                        <thead>
+                            <tr>
+                                <th>Mã đổi thưởng</th>
+                                <th>Tên phần thưởng</th>
+                                <th>Điểm đã dùng</th>
+                                <th>Thời gian đổi</th>
+                                <th>Trạng thái</th>
+                                <th>Ghi chú</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dtHistBody"></tbody>
+                    </table>
+                </div>
+                <div id="historyEmpty" class="dt-empty" style="margin-top:12px;" hidden>
+                    <i class="fas fa-inbox"></i>
+                    Chưa có lịch sử đổi thưởng. Khi bạn đổi quà, các yêu cầu sẽ hiển thị tại đây.
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:3000;display:flex;flex-direction:column;gap:10px;"></div>
+
+    <!-- Modal xác nhận -->
+    <div class="dt-modal-overlay" id="modalConfirmDoi" aria-hidden="true" role="dialog" aria-labelledby="dtCfTitle">
+        <div class="dt-modal dt-modal-wide">
+            <h3 id="dtCfTitle">Xác nhận đổi thưởng</h3>
+            <p>Bạn có chắc chắn muốn đổi phần thưởng này không?</p>
+            <div class="dt-modal-dl">
+                <div><dt>Tên phần thưởng</dt><dd id="dtCfTen">—</dd></div>
+                <div><dt>Điểm cần đổi</dt><dd id="dtCfDiemCan">—</dd></div>
+                <div><dt>Điểm hiện tại</dt><dd id="dtCfDiemHt">—</dd></div>
+                <div><dt>Điểm còn lại sau khi đổi</dt><dd id="dtCfDiemCl">—</dd></div>
+            </div>
+            <div class="dt-modal-actions">
+                <button type="button" class="dt-btn dt-btn-ghost" id="btnCfHuy">Hủy</button>
+                <button type="button" class="dt-btn dt-btn-primary" id="btnCfDoi">Xác nhận đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal thành công -->
+    <div class="dt-modal-overlay" id="modalSuccessDoi" aria-hidden="true" role="dialog">
+        <div class="dt-modal">
+            <div class="dt-modal-icon dt-ok"><i class="fas fa-check"></i></div>
+            <h3 style="text-align:center;">Đổi thưởng thành công</h3>
+            <p style="text-align:center;">Mã đổi thưởng của bạn:</p>
+            <p style="text-align:center;margin:8px 0 12px;"><code id="dtSuccessMaDoi" style="font-size:1.35rem;font-weight:700;letter-spacing:0.08em;padding:8px 14px;background:#edf2f7;border-radius:8px;">—</code></p>
+            <p style="text-align:center;font-size:0.9rem;color:var(--text-light);">Giữ mã này để đối chiếu khi nhận quà. Theo dõi trạng thái trong lịch sử đổi thưởng.</p>
+            <div class="dt-modal-actions" style="justify-content:center;">
+                <button type="button" class="dt-btn dt-btn-primary" id="btnSuccessClose">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal lỗi -->
+    <div class="dt-modal-overlay" id="modalErrorDoi" aria-hidden="true" role="dialog">
+        <div class="dt-modal">
+            <div class="dt-modal-icon dt-err"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 style="text-align:center;">Không thể đổi thưởng</h3>
+            <p style="text-align:center;" id="modalErrText">Đã xảy ra lỗi.</p>
+            <div class="dt-modal-actions" style="justify-content:center;">
+                <button type="button" class="dt-btn dt-btn-primary" id="btnErrClose">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chi tiết lịch sử -->
+    <div class="dt-modal-overlay" id="modalDetailLs" aria-hidden="true" role="dialog">
+        <div class="dt-modal dt-modal-wide">
+            <h3>Chi tiết yêu cầu</h3>
+            <div id="dtDetailBody"></div>
+            <div class="dt-modal-actions">
+                <button type="button" class="dt-btn dt-btn-primary" id="btnDetailClose">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/sinh-vien-phong-thi.js}"></script>
+    <script th:src="@{/js/sinh-vien-doi-thuong.js}"></script>
+</body>
+</html>

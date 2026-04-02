@@ -90,6 +90,15 @@ public class DashboardController {
     }
 
     /**
+     * Trang Đổi thưởng (sinh viên) — placeholder.
+     * URL: GET /dashboard/sinh-vien/doi-thuong
+     */
+    @GetMapping("/sinh-vien/doi-thuong")
+    public String trangDoiThuongSinhVien() {
+        return "sinh-vien-doi-thuong";
+    }
+
+    /**
      * Trang Lịch sử thi (sinh viên) — placeholder.
      * URL: GET /dashboard/sinh-vien/lich-su-thi
      */

@@ -51,6 +51,12 @@ public interface KetQuaThiRepository extends JpaRepository<KetQuaThi, String> {
     long demSoBaiThiHoanThanh(@Param("nguoiDung") NguoiDung nguoiDung);
 
     /**
+     * Tổng điểm bài thi (tổng điểm) của sinh viên — dùng làm nguồn điểm thưởng đổi quà (làm tròn xuống int).
+     */
+    @Query("SELECT COALESCE(SUM(kq.tongDiem), 0) FROM KetQuaThi kq WHERE kq.phienThi.nguoiDung = :nguoiDung")
+    BigDecimal tongDiemTichLuy(@Param("nguoiDung") NguoiDung nguoiDung);
+
+    /**
      * Lấy kết quả thi theo đề thi + lớp, kèm cả kết quả ẩn danh (lopHoc IS NULL).
      */
     @Query("SELECT kq FROM KetQuaThi kq JOIN FETCH kq.phienThi pt " +

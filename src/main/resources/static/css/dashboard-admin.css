@@ -714,3 +714,21 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Chi tiết đổi thưởng (modal) */
+.admin-dl-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 16px;
+    font-size: 0.88rem;
+    margin: 0;
+}
+.admin-dl-grid dt {
+    margin: 0;
+    color: #718096;
+    font-weight: 500;
+}
+.admin-dl-grid dd {
+    margin: 0;
+    color: #2d3748;
+}

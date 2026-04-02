@@ -66,6 +66,10 @@
                     <i class="fas fa-question-circle"></i>
                     <span>Quản Lý Câu Hỏi</span>
                 </a>
+                <a href="#" class="menu-item" data-page="doi-thuong">
+                    <i class="fas fa-gift"></i>
+                    <span>Quản Lý Đổi Thưởng</span>
+                </a>
             </div>
 
 
@@ -694,6 +698,68 @@
             </div>
         </div>
 
+        <!-- Quản lý đổi thưởng -->
+        <div class="dashboard-content admin-user-page" id="pageDoiThuong" style="display: none;">
+            <div class="dashboard-card">
+                <div class="card-header admin-mon-hoc-header">
+                    <h3><i class="fas fa-gift"></i> Yêu cầu đổi thưởng</h3>
+                    <div class="admin-mon-hoc-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <select id="adminDtFilterTrangThai" style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;">
+                            <option value="TAT_CA">Tất cả trạng thái</option>
+                            <option value="CHO_DUYET">Chờ duyệt</option>
+                            <option value="DA_DUYET">Đã duyệt</option>
+                            <option value="DA_NHAN_QUA">Đã nhận quà</option>
+                            <option value="DA_HUY">Đã hủy</option>
+                        </select>
+                        <input type="search" id="adminDtSearch" placeholder="Mã đổi, tên SV, email..." style="padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.88rem;min-width:220px;">
+                        <button type="button" class="btn btn-sm btn-primary" id="btnReloadDoiThuong">
+                            <i class="fas fa-sync-alt"></i> Tải lại
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="adminDtMsg" class="admin-inline-msg" hidden></div>
+                    <div class="table-wrap-admin">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã đổi</th>
+                                    <th>Sinh viên</th>
+                                    <th>Phần thưởng</th>
+                                    <th>Điểm</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thời gian</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminDtTableBody">
+                                <tr class="loading-row">
+                                    <td colspan="7"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal chi tiết / sửa yêu cầu đổi thưởng -->
+        <div class="admin-modal-overlay" id="modalAdminDoiThuong" style="display:none;">
+            <div class="admin-modal admin-modal-wide">
+                <div class="admin-modal-header">
+                    <h3><i class="fas fa-gift" style="color:#667eea;margin-right:8px;"></i>Chi tiết yêu cầu đổi thưởng</h3>
+                    <button type="button" class="admin-modal-close" id="modalAdminDtClose" aria-label="Đóng">&times;</button>
+                </div>
+                <div class="admin-modal-body" id="adminDtChiTietBody" style="max-height:72vh;overflow-y:auto;">
+                    <p style="text-align:center;color:#a0aec0;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>
+                </div>
+                <div class="admin-modal-footer" style="flex-wrap:wrap;gap:8px;">
+                    <button type="button" class="btn btn-sm" id="btnAdminDtClose2">Đóng</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="btnAdminDtSave">Lưu trạng thái / ghi chú</button>
+                    <button type="button" class="btn btn-sm" style="background:#fed7d7;color:#9b2c2c;border:1px solid #fc8181;" id="btnAdminDtDelete">Xóa yêu cầu</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Modal xem chi tiết đề thi -->
         <div class="admin-modal-overlay" id="modalAdminChiTietDeThi" style="display:none;">

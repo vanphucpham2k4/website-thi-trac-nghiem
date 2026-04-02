@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const pageMonHoc = document.getElementById('pageMonHoc');
     const pageQuanLyDeThi = document.getElementById('pageQuanLyDeThi');
     const pageQuanLyCauHoi = document.getElementById('pageQuanLyCauHoi');
+    const pageDoiThuong = document.getElementById('pageDoiThuong');
     const mainPageTitle = document.getElementById('mainPageTitle');
     const menuItems = document.querySelectorAll('.menu-item[data-page]');
 
@@ -72,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pageMonHoc) pageMonHoc.style.display = 'none';
         if (pageQuanLyDeThi) pageQuanLyDeThi.style.display = 'none';
         if (pageQuanLyCauHoi) pageQuanLyCauHoi.style.display = 'none';
+        if (pageDoiThuong) pageDoiThuong.style.display = 'none';
         if (document.getElementById('pageHoSo')) document.getElementById('pageHoSo').style.display = 'none';
     }
 
@@ -110,6 +112,13 @@ document.addEventListener('DOMContentLoaded', function () {
             loadAdminGiaoVienCauHoi();
             return;
         }
+        if (page === 'doi-thuong') {
+            hideAllMainPages();
+            if (pageDoiThuong) pageDoiThuong.style.display = '';
+            if (mainPageTitle) mainPageTitle.textContent = 'Quản Lý Đổi Thưởng';
+            loadAdminDoiThuong();
+            return;
+        }
         if (page === 'ho-so') {
             hideAllMainPages();
             const pageHoSo = document.getElementById('pageHoSo');
@@ -136,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleInitialHash() {
         const hash = window.location.hash;
         if (hash === '#ho-so') {
-            // Set active cho menu Hồ sơ Cá Nhân trong sidebar
             menuItems.forEach(mi => {
                 if (mi.getAttribute('data-page') === 'ho-so') {
                     mi.classList.add('active');
@@ -145,8 +153,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
             showPage('ho-so');
+        } else if (hash === '#doi-thuong') {
+            menuItems.forEach(mi => {
+                if (mi.getAttribute('data-page') === 'doi-thuong') {
+                    mi.classList.add('active');
+                } else {
+                    mi.classList.remove('active');
+                }
+            });
+            showPage('doi-thuong');
         } else {
-            // Mặc định hiển thị dashboard
             showPage('dashboard');
         }
     }
@@ -1558,6 +1574,285 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         btn.disabled = false;
         btn.innerHTML = originalText;
+    });
+
+    // ----- Quản lý đổi thưởng -----
+    const TT_DT_LABEL = {
+        CHO_DUYET: 'Chờ duyệt',
+        DA_DUYET: 'Đã duyệt',
+        DA_NHAN_QUA: 'Đã nhận quà',
+        DA_HUY: 'Đã hủy'
+    };
+
+    function escAdminDt(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    let adminDtEditingId = null;
+
+    async function loadAdminDoiThuong() {
+        const tbody = document.getElementById('adminDtTableBody');
+        const msg = document.getElementById('adminDtMsg');
+        if (msg) {
+            msg.hidden = true;
+            msg.textContent = '';
+            msg.className = 'admin-inline-msg';
+        }
+        if (tbody) {
+            tbody.innerHTML =
+                '<tr><td colspan="7" style="text-align:center;padding:24px;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+        }
+        const tt = document.getElementById('adminDtFilterTrangThai')?.value || 'TAT_CA';
+        const q = document.getElementById('adminDtSearch')?.value?.trim() || '';
+        const p = new URLSearchParams();
+        if (tt && tt !== 'TAT_CA') p.set('trangThai', tt);
+        if (q) p.set('q', q);
+        const qs = p.toString();
+        try {
+            const res = await fetch('/api/admin/doi-thuong/yeu-cau' + (qs ? '?' + qs : ''), {
+                headers: authHeadersJson()
+            });
+            const json = await res.json();
+            if (res.status === 401) {
+                window.location.href = '/login/admin?expired=1';
+                return;
+            }
+            if (!json.success || !json.data) {
+                if (tbody) {
+                    tbody.innerHTML =
+                        '<tr><td colspan="7" style="text-align:center;color:#e53e3e;">' +
+                        escAdminDt(json.message || 'Không tải được') +
+                        '</td></tr>';
+                }
+                return;
+            }
+            const rows = json.data;
+            if (!tbody) return;
+            if (rows.length === 0) {
+                tbody.innerHTML =
+                    '<tr><td colspan="7" style="text-align:center;padding:24px;color:#718096;">Không có yêu cầu.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows
+                .map(function (r) {
+                    const ttL = TT_DT_LABEL[r.trangThai] || r.trangThai;
+                    return (
+                        '<tr>' +
+                        '<td><code style="font-size:0.85rem;">' +
+                        escAdminDt(r.maDoi) +
+                        '</code></td>' +
+                        '<td>' +
+                        escAdminDt(r.sinhVienHoTen || '—') +
+                        '<br><small style="color:#718096;">' +
+                        escAdminDt(r.sinhVienEmail || '') +
+                        '</small></td>' +
+                        '<td>' +
+                        escAdminDt(r.tenPhanThuong) +
+                        '</td>' +
+                        '<td>' +
+                        r.diemDaDung +
+                        '</td>' +
+                        '<td>' +
+                        escAdminDt(ttL) +
+                        '</td>' +
+                        '<td style="font-size:0.82rem;white-space:nowrap;">' +
+                        escAdminDt(r.thoiGian || '') +
+                        '</td>' +
+                        '<td><button type="button" class="btn btn-sm btn-primary admin-dt-open" data-id="' +
+                        escAdminDt(r.id) +
+                        '">Chi tiết / Sửa</button></td>' +
+                        '</tr>'
+                    );
+                })
+                .join('');
+            tbody.querySelectorAll('.admin-dt-open').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    openAdminDoiThuongModal(btn.getAttribute('data-id'));
+                });
+            });
+        } catch (e) {
+            console.error(e);
+            if (tbody) {
+                tbody.innerHTML =
+                    '<tr><td colspan="7" style="text-align:center;color:#e53e3e;">Lỗi kết nối</td></tr>';
+            }
+        }
+    }
+
+    function closeAdminDoiThuongModal() {
+        const ov = document.getElementById('modalAdminDoiThuong');
+        if (ov) ov.style.display = 'none';
+        adminDtEditingId = null;
+    }
+
+    async function openAdminDoiThuongModal(id) {
+        adminDtEditingId = id;
+        const ov = document.getElementById('modalAdminDoiThuong');
+        const body = document.getElementById('adminDtChiTietBody');
+        if (!ov || !body) return;
+        body.innerHTML = '<p style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>';
+        ov.style.display = 'flex';
+        try {
+            const res = await fetch('/api/admin/doi-thuong/yeu-cau/' + encodeURIComponent(id), {
+                headers: authHeadersJson()
+            });
+            const json = await res.json();
+            if (res.status === 401) {
+                window.location.href = '/login/admin?expired=1';
+                return;
+            }
+            if (!json.success || !json.data) {
+                body.innerHTML =
+                    '<p style="color:#e53e3e;">' + escAdminDt(json.message || 'Lỗi') + '</p>';
+                return;
+            }
+            const d = json.data;
+            const ttL = TT_DT_LABEL[d.trangThai] || d.trangThai;
+            const opts = ['CHO_DUYET', 'DA_DUYET', 'DA_NHAN_QUA', 'DA_HUY']
+                .map(function (v) {
+                    return (
+                        '<option value="' +
+                        v +
+                        '"' +
+                        (d.trangThai === v ? ' selected' : '') +
+                        '>' +
+                        escAdminDt(TT_DT_LABEL[v] || v) +
+                        '</option>'
+                    );
+                })
+                .join('');
+            body.innerHTML =
+                '<div class="admin-dt-detail">' +
+                '<h4 style="margin:0 0 10px;font-size:0.95rem;color:#4a5568;">Sinh viên</h4>' +
+                '<dl class="admin-dl-grid">' +
+                '<dt>Họ tên</dt><dd>' +
+                escAdminDt(d.sinhVienHoTen) +
+                '</dd>' +
+                '<dt>Mã tài khoản</dt><dd>' +
+                escAdminDt(d.sinhVienMa || '—') +
+                '</dd>' +
+                '<dt>Email</dt><dd>' +
+                escAdminDt(d.sinhVienEmail || '—') +
+                '</dd>' +
+                '<dt>SĐT</dt><dd>' +
+                escAdminDt(d.sinhVienSoDienThoai || '—') +
+                '</dd>' +
+                '<dt>Điểm thưởng (DB)</dt><dd>' +
+                d.sinhVienDiemThuongTichLuy +
+                '</dd>' +
+                '</dl>' +
+                '<h4 style="margin:18px 0 10px;font-size:0.95rem;color:#4a5568;">Yêu cầu đổi</h4>' +
+                '<dl class="admin-dl-grid">' +
+                '<dt>Mã đổi thưởng</dt><dd><code style="font-size:1.1rem;font-weight:600;">' +
+                escAdminDt(d.maDoi) +
+                '</code></dd>' +
+                '<dt>Phần thưởng</dt><dd>' +
+                escAdminDt(d.tenPhanThuong) +
+                '</dd>' +
+                '<dt>Loại</dt><dd>' +
+                escAdminDt(d.loaiPhanThuong) +
+                '</dd>' +
+                '<dt>Điểm đã dùng</dt><dd>' +
+                d.diemDaDung +
+                '</dd>' +
+                '<dt>Thời gian</dt><dd>' +
+                escAdminDt(d.thoiGian) +
+                '</dd>' +
+                '<dt>Trạng thái hiện tại</dt><dd>' +
+                escAdminDt(ttL) +
+                ' <span style="color:#a0aec0;">(' +
+                escAdminDt(d.trangThai) +
+                ')</span></dd>' +
+                '</dl>' +
+                '<div class="form-field" style="margin-top:16px;">' +
+                '<label for="adminDtTrangThaiSel">Trạng thái mới</label>' +
+                '<select id="adminDtTrangThaiSel" style="width:100%;max-width:320px;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;">' +
+                opts +
+                '</select></div>' +
+                '<div class="form-field" style="margin-top:12px;">' +
+                '<label for="adminDtGhiChu">Ghi chú (admin)</label>' +
+                '<textarea id="adminDtGhiChu" rows="3" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;"></textarea></div>' +
+                '</div>';
+            const gta = document.getElementById('adminDtGhiChu');
+            if (gta) gta.value = d.ghiChu || '';
+        } catch (e) {
+            console.error(e);
+            body.innerHTML = '<p style="color:#e53e3e;">Lỗi kết nối</p>';
+        }
+    }
+
+    document.getElementById('btnReloadDoiThuong')?.addEventListener('click', function () {
+        loadAdminDoiThuong();
+    });
+    document.getElementById('adminDtFilterTrangThai')?.addEventListener('change', function () {
+        loadAdminDoiThuong();
+    });
+    let adminDtSearchTimer;
+    document.getElementById('adminDtSearch')?.addEventListener('input', function () {
+        clearTimeout(adminDtSearchTimer);
+        adminDtSearchTimer = setTimeout(loadAdminDoiThuong, 350);
+    });
+    document.getElementById('modalAdminDtClose')?.addEventListener('click', closeAdminDoiThuongModal);
+    document.getElementById('btnAdminDtClose2')?.addEventListener('click', closeAdminDoiThuongModal);
+    document.getElementById('modalAdminDoiThuong')?.addEventListener('click', function (e) {
+        if (e.target === this) closeAdminDoiThuongModal();
+    });
+
+    document.getElementById('btnAdminDtSave')?.addEventListener('click', async function () {
+        if (!adminDtEditingId) return;
+        const sel = document.getElementById('adminDtTrangThaiSel');
+        const ta = document.getElementById('adminDtGhiChu');
+        if (!sel) return;
+        const body = { trangThai: sel.value, ghiChu: ta ? ta.value : '' };
+        try {
+            const res = await fetch(
+                '/api/admin/doi-thuong/yeu-cau/' + encodeURIComponent(adminDtEditingId),
+                { method: 'PUT', headers: authHeadersJson(), body: JSON.stringify(body) }
+            );
+            const json = await res.json();
+            if (res.status === 401) {
+                window.location.href = '/login/admin?expired=1';
+                return;
+            }
+            if (!json.success) {
+                alert(json.message || 'Không lưu được');
+                return;
+            }
+            closeAdminDoiThuongModal();
+            loadAdminDoiThuong();
+        } catch (e) {
+            console.error(e);
+            alert('Lỗi kết nối');
+        }
+    });
+
+    document.getElementById('btnAdminDtDelete')?.addEventListener('click', async function () {
+        if (!adminDtEditingId) return;
+        if (!confirm('Xóa yêu cầu này? (Chờ duyệt/Đã duyệt: hoàn tồn kho phần thưởng)')) return;
+        try {
+            const res = await fetch(
+                '/api/admin/doi-thuong/yeu-cau/' + encodeURIComponent(adminDtEditingId),
+                { method: 'DELETE', headers: authHeadersJson() }
+            );
+            const json = await res.json();
+            if (res.status === 401) {
+                window.location.href = '/login/admin?expired=1';
+                return;
+            }
+            if (!json.success) {
+                alert(json.message || 'Không xóa được');
+                return;
+            }
+            closeAdminDoiThuongModal();
+            loadAdminDoiThuong();
+        } catch (e) {
+            console.error(e);
+            alert('Lỗi kết nối');
+        }
     });
 
     window.togglePasswordField = function (fieldId, btn) {

@@ -40,6 +40,7 @@ public class SinhVienThiService {
     private final KiemTraLuotThiService kiemTraLuotThiService;
     private final CauHoiRepository cauHoiRepository;
     private final JwtService jwtService;
+    private final DoiThuongService doiThuongService;
 
     public SinhVienThiService(
             NguoiDungRepository nguoiDungRepository,
@@ -53,7 +54,8 @@ public class SinhVienThiService {
             KetQuaThiRepository ketQuaThiRepository,
             KiemTraLuotThiService kiemTraLuotThiService,
             CauHoiRepository cauHoiRepository,
-            JwtService jwtService) {
+            JwtService jwtService,
+            DoiThuongService doiThuongService) {
         this.nguoiDungRepository = nguoiDungRepository;
         this.lopHocRepository = lopHocRepository;
         this.lopHocSinhVienRepository = lopHocSinhVienRepository;
@@ -66,6 +68,7 @@ public class SinhVienThiService {
         this.kiemTraLuotThiService = kiemTraLuotThiService;
         this.cauHoiRepository = cauHoiRepository;
         this.jwtService = jwtService;
+        this.doiThuongService = doiThuongService;
     }
 
     @Transactional(readOnly = true)
@@ -703,6 +706,9 @@ public class SinhVienThiService {
         kq.setThoiGianNop(nopLuc);
         kq.setTrangThaiCham("TU_DONG");
         ketQuaThiRepository.save(kq);
+        if (p.getNguoiDung() != null) {
+            doiThuongService.dongBoDiemThuongVaLuotDoiLenDb(p.getNguoiDung().getId());
+        }
         SinhVienKetQuaThiDTO dto = buildKetQuaDto(p, kq);
         dto.setTrangThaiCacCau(oTrangThai);
         dto.setSoCauDung(soDung);

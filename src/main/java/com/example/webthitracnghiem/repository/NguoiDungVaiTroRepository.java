@@ -2,6 +2,8 @@ package com.example.webthitracnghiem.repository;
 
 import com.example.webthitracnghiem.model.NguoiDungVaiTro;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -22,4 +24,7 @@ public interface NguoiDungVaiTroRepository extends JpaRepository<NguoiDungVaiTro
     List<NguoiDungVaiTro> findByNguoiDungId(String nguoiDungId);
 
     long countByVaiTro_TenVaiTro(String tenVaiTro);
+
+    @Query("SELECT DISTINCT ndv.nguoiDung.id FROM NguoiDungVaiTro ndv WHERE ndv.vaiTro.tenVaiTro = :ten")
+    List<String> findDistinctNguoiDungIdsByVaiTroTen(@Param("ten") String ten);
 }
